@@ -3,12 +3,12 @@ import { extractDataWithReferences, extractFields } from "./utils";
 
 export const getCompany = async (identifier: string) => {
   const response = await fetchData(
-    `/organization/companies?decorationId=com.linkedin.voyager.deco.organization.web.WebFullCompanyMain-12&q=universalName&universalName=${identifier}`
+    `/organization/companies?decorationId=com.linkedin.voyager.deco.organization.web.WebFullCompanyMain-12&q=universalName&universalName=${identifier}`,
   );
 
   const data = extractDataWithReferences(
     response.data["*elements"],
-    response.included
+    response.included,
   );
 
   const fieldsMap = {
@@ -29,5 +29,15 @@ export const getCompany = async (identifier: string) => {
     permissions: "permissions",
   };
 
-  return extractFields(data, fieldsMap)[0];
+  return extractFields(data, fieldsMap).map((item) => ({
+    ...item,
+    id: item.id.split(":")[3],
+    backgroundCoverImage: `${item.backgroundCoverImage?.rootUrl}${
+      item.backgroundCoverImage?.artifacts?.at(-1)
+        ?.fileIdentifyingUrlPathSegment
+    }`,
+    logo: `${item.logo?.rootUrl}${
+      item.logo?.artifacts?.at(-1)?.fileIdentifyingUrlPathSegment
+    }`,
+  }))[0];
 };

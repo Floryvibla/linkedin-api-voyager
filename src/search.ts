@@ -1,183 +1,226 @@
-import { Client as ClientState } from "./config";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { fetchData } from "./config";
+import { assert, getIdFromUrn, getUrnFromRawUpdate } from "./utils";
+import {
+  EntitySearchResult,
+  ISearchParams,
+  ISearchPeopleParams,
+  ISearchPeopleResponse,
+  SearchResponse,
+} from "./types";
 
 // Constantes
 const MAX_SEARCH_COUNT = 25;
-const MAX_REPEATED_REQUESTS = 40;
 
-// Interfaces
-export interface SearchParams {
-  count?: string;
-  filters?: string;
-  origin?: string;
-  q?: string;
-  start?: number;
-  queryContext?: string;
-  [key: string]: any; // Para permitir parâmetros adicionais
-}
-
-export interface SearchElement {
-  [key: string]: any; // Estrutura flexível para elementos de busca
-}
-
-export interface SearchDataElement {
-  elements: SearchElement[];
-  extendedElements?: SearchElement[];
-}
-
-export interface SearchResponse {
-  data: {
-    elements: SearchDataElement[];
+export const search = async ({
+  offset = 0,
+  limit = MAX_SEARCH_COUNT,
+  ...opts
+}: ISearchParams) => {
+  const response: SearchResponse = {
+    paging: {
+      offset: 0,
+      count: 0,
+      total: -1,
+    },
+    results: [],
   };
-}
 
-export interface SearchOptions {
-  limit?: number;
-  results?: SearchElement[];
-}
-
-// Função utilitária para criar query string
-const createQueryString = (params: Record<string, any>): string => {
-  return Object.entries(params)
-    .map(
-      ([key, value]) =>
-        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-    )
-    .join("&");
-};
-
-// Função utilitária para fazer fetch (assumindo que existe uma função _fetch no client)
-const fetchData = async (endpoint: string): Promise<SearchResponse> => {
-  const api = await ClientState();
-  const response = await api.get(endpoint);
-  return response.data;
-};
-
-// Função principal de busca
-export const search = async (
-  params: SearchParams,
-  options: SearchOptions = {}
-): Promise<SearchElement[]> => {
-  const { limit, results = [] } = options;
-
-  // Determinar o count baseado no limite
-  const count = limit && limit <= MAX_SEARCH_COUNT ? limit : MAX_SEARCH_COUNT;
-
-  // Parâmetros padrão
-  const defaultParams: SearchParams = {
-    count: count.toString(),
+  const params: any = {
+    start: offset,
+    count: Math.min(limit, MAX_SEARCH_COUNT),
     filters: "List()",
     origin: "GLOBAL_SEARCH_HEADER",
-    q: "all",
-    start: results.length,
-    queryContext:
-      "List(spellCorrectionEnabled->true,relatedSearchesEnabled->true,kcardTypes->PROFILE|COMPANY)",
+    ...opts,
   };
 
-  // Mesclar parâmetros padrão com os fornecidos
-  const mergedParams = { ...defaultParams, ...params };
+  const keywords = params.query
+    ? `keywords:${encodeURIComponent(params.query)},`
+    : "";
 
-  // Fazer a requisição
-  const endpoint = `/search/blended?${createQueryString(mergedParams)}`;
+  const uri =
+    `graphql?variables=(start:${params.start},origin:${params.origin},` +
+    `query:(${keywords}flagshipSearchIntent:SEARCH_SRP,` +
+    `queryParameters:${params.filters},includeFiltersInResponse:false))` +
+    `&queryId=voyagerSearchDashClusters.bb967969ef89137e6dec45d038310505`;
 
-  const response = await fetchData(endpoint);
+  const res = await fetchData(uri);
 
-  // Processar os dados da resposta
-  const newElements: SearchElement[] = [];
+  const dataClusters = res?.data?.data?.searchDashClustersByAll;
+  if (!dataClusters) return response;
 
-  if (response.data && response.data.elements) {
-    for (let i = 0; i < response.data.elements.length; i++) {
-      if (response.data.elements[i].elements) {
-        newElements.push(...response.data.elements[i].elements);
+  if (dataClusters.$type !== "com.linkedin.restli.common.CollectionResponse") {
+    return response;
+  }
+
+  response.paging.count = dataClusters.paging.count;
+  response.paging.total = dataClusters.paging.total;
+
+  for (const element of dataClusters.elements ?? []) {
+    if (
+      element.$type !==
+      "com.linkedin.voyager.dash.search.SearchClusterViewModel"
+    ) {
+      continue;
+    }
+
+    for (const it of element.items ?? []) {
+      if (it.$type !== "com.linkedin.voyager.dash.search.SearchItem") {
+        continue;
       }
-      // Comentário: não tenho certeza do que extendedElements geralmente se refere
-      // - busca por palavra-chave retorna um único trabalho?
-      // if (response.data.elements[i].extendedElements) {
-      //   newElements.push(...response.data.elements[i].extendedElements);
-      // }
+
+      const item = it?.item;
+      if (!item) continue;
+
+      let entity: EntitySearchResult | undefined = item.entityResult;
+      if (!entity) {
+        const linkedEntityUrn = item["*entityResult"];
+        if (!linkedEntityUrn) continue;
+
+        entity = res.included?.find(
+          (e: any) => e.entityUrn === linkedEntityUrn,
+        );
+        if (!entity) continue;
+      }
+
+      if (
+        entity.$type !==
+        "com.linkedin.voyager.dash.search.EntityResultViewModel"
+      ) {
+        continue;
+      }
+
+      response.results.push(entity);
     }
   }
 
-  // Adicionar novos elementos aos resultados
-  const updatedResults = [...results, ...newElements];
-
-  // Sempre cortar os resultados, não importa o que a requisição retorna
-  const trimmedResults = limit
-    ? updatedResults.slice(0, limit)
-    : updatedResults;
-
-  // Caso base da recursão
-  const shouldStop =
-    (limit !== undefined &&
-      (trimmedResults.length >= limit || // se nossos resultados excedem o limite definido
-        trimmedResults.length / count >= MAX_REPEATED_REQUESTS)) ||
-    newElements.length === 0;
-
-  if (shouldStop) {
-    return trimmedResults;
-  }
-
-  // Chamada recursiva
-  return search(params, {
-    limit,
-    results: trimmedResults,
-  });
+  return response;
 };
 
-// Função auxiliar para busca simples (não recursiva)
-// export const searchSingle = async (
-//   client: ClientState,
-//   params: SearchParams
-// ): Promise<SearchElement[]> => {
-//   return search(client, params, { limit: MAX_SEARCH_COUNT });
-// };
+export async function searchPeople(
+  queryOrParams: string | ISearchPeopleParams,
+): Promise<ISearchPeopleResponse> {
+  const { includePrivateProfiles = true, ...params } =
+    typeof queryOrParams === "string"
+      ? { query: queryOrParams }
+      : queryOrParams;
+  const filters: string[] = ["(key:resultType,value:List(PEOPLE))"];
 
-// // Função para busca com limite específico
-// export const searchWithLimit = async (
-//   client: ClientState,
-//   params: SearchParams,
-//   limit: number
-// ): Promise<SearchElement[]> => {
-//   return search(client, params, { limit });
-// };
+  if (params.connectionOf) {
+    filters.push(`(key:connectionOf,value:List(${params.connectionOf}))`);
+  }
 
-// // Função para busca de pessoas
-// export const searchPeople = async (
-//   client: ClientState,
-//   query: string,
-//   limit?: number
-// ): Promise<SearchElement[]> => {
-//   const params: SearchParams = {
-//     keywords: query,
-//     filters: "List(resultType->PEOPLE)",
-//   };
+  if (params.networkDepths) {
+    const stringify = params.networkDepths.join(" | ");
+    filters.push(`(key:network,value:List(${stringify}))`);
+  } else if (params.networkDepth) {
+    filters.push(`(key:network,value:List(${params.networkDepth}))`);
+  }
 
-//   return search(client, params, { limit });
-// };
+  if (params.regions) {
+    const stringify = params.regions.join(" | ");
+    filters.push(`(key:geoUrn,value:List(${stringify}))`);
+  }
 
-// // Função para busca de empresas
-// export const searchCompanies = async (
-//   client: ClientState,
-//   query: string,
-//   limit?: number
-// ): Promise<SearchElement[]> => {
-//   const params: SearchParams = {
-//     keywords: query,
-//     filters: "List(resultType->COMPANIES)",
-//   };
+  if (params.industries) {
+    const stringify = params.industries.join(" | ");
+    filters.push(`(key:industry,value:List(${stringify}))`);
+  }
 
-//   return search(client, params, { limit });
-// };
+  if (params.currentCompany) {
+    const stringify = params.currentCompany.join(" | ");
+    filters.push(`(key:currentCompany,value:List(${stringify}))`);
+  }
 
-// // Função para busca de empregos
-// export const searchJobs = async (
-//   client: ClientState,
-//   query: string,
-//   limit?: number
-// ): Promise<SearchElement[]> => {
-//   const params: SearchParams = {
-//     keywords: query,
-//     filters: "List(resultType->JOBS)",
-//   };
+  if (params.pastCompanies) {
+    const stringify = params.pastCompanies.join(" | ");
+    filters.push(`(key:pastCompany,value:List(${stringify}))`);
+  }
 
-//   return search(client, params, { limit });
-// };
+  if (params.profileLanguages) {
+    const stringify = params.profileLanguages.join(" | ");
+    filters.push(`(key:profileLanguage,value:List(${stringify}))`);
+  }
+
+  if (params.nonprofitInterests) {
+    const stringify = params.nonprofitInterests.join(" | ");
+    filters.push(`(key:nonprofitInterest,value:List(${stringify}))`);
+  }
+
+  if (params.schools) {
+    const stringify = params.schools.join(" | ");
+    filters.push(`(key:schools,value:List(${stringify}))`);
+  }
+
+  if (params.serviceCategories) {
+    const stringify = params.serviceCategories.join(" | ");
+    filters.push(`(key:serviceCategory,value:List(${stringify}))`);
+  }
+
+  // `Keywords` filter
+  const keywordTitle = params.keywordTitle ?? params.title;
+  if (params.keywordFirstName) {
+    filters.push(`(key:firstName,value:List(${params.keywordFirstName}))`);
+  }
+
+  if (params.keywordLastName) {
+    filters.push(`(key:lastName,value:List(${params.keywordLastName}))`);
+  }
+
+  if (keywordTitle) {
+    filters.push(`(key:title,value:List(${keywordTitle}))`);
+  }
+
+  if (params.keywordCompany) {
+    filters.push(`(key:company,value:List(${params.keywordCompany}))`);
+  }
+
+  if (params.keywordSchool) {
+    filters.push(`(key:school,value:List(${params.keywordSchool}))`);
+  }
+
+  const res = await search({
+    offset: params.offset,
+    limit: params.limit,
+    filters: `List(${filters.join(",")})`,
+    ...(params.query && { query: params.query }),
+  });
+
+  const response: ISearchPeopleResponse = {
+    paging: res.paging,
+    results: [],
+  };
+
+  for (const result of res.results) {
+    if (
+      !includePrivateProfiles &&
+      result.entityCustomTrackingInfo?.memberDistance === "OUT_OF_NETWORK"
+    ) {
+      continue;
+    }
+
+    const urnId = getIdFromUrn(getUrnFromRawUpdate(result.entityUrn));
+    assert(urnId);
+
+    const name = result.title?.text;
+    assert(name);
+
+    const url = result.navigationUrl?.split("?")[0];
+    assert(url);
+
+    response.results.push({
+      urnId,
+      name,
+      url,
+      distance: result.entityCustomTrackingInfo?.memberDistance,
+      headline: result.primarySubtitle?.text,
+      location: result.secondarySubtitle?.text,
+      summary: result.summary?.text || undefined,
+      image:
+        result.image?.attributes?.[0]?.detailData?.nonEntityProfilePicture
+          ?.vectorImage?.artifacts?.[0]?.fileIdentifyingUrlPathSegment || null,
+    });
+  }
+
+  return response;
+}
