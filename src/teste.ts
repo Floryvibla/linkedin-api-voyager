@@ -1,6 +1,6 @@
 import { getUserMiniProfile } from "./user";
 
-getUserMiniProfile("florymignon")
+getUserMiniProfile("wesbush")
   .then((profile) => {
     console.log("profile: ", profile);
   })
