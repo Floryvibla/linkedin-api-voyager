@@ -26,7 +26,7 @@ import { Client } from "linkedin-api-voyager";
 // Configure suas credenciais uma única vez
 Client({
   JSESSIONID: process.env.LINKEDIN_JSESSIONID, // ex: "ajax:123456789" (apenas os números se preferir, a lib trata)
-  li_at: process.env.LINKEDIN_LI_AT,           // ex: "AQEDAR..."
+  li_at: process.env.LINKEDIN_LI_AT, // ex: "AQEDAR..."
 });
 ```
 
@@ -57,11 +57,11 @@ import {
 } from "linkedin-api-voyager";
 
 // Exemplo: Buscar perfil
-const profile = await getUserMiniProfile("wesbush");
+const profile = await getUserMiniProfile("florymignon");
 console.log(profile);
 
 // Exemplo: Buscar experiências
-const experiences = await getProfissionalExperiences("wesbush");
+const experiences = await getProfissionalExperiences("florymignon");
 
 // Exemplo: Buscar empresa
 const company = await getCompany("microsoft");
@@ -85,12 +85,14 @@ const comments = await getCommentsByPostUrl(
 ### Módulos Disponíveis
 
 A biblioteca exporta funções dos seguintes módulos:
+
 - `user`: Perfis e dados de usuário.
 - `company`: Dados de empresas.
 - `posts`: Interações com posts e comentários.
 - `search`: Busca de pessoas e empresas.
 - `utils`: Utilitários gerais.
-```
+
+````
 
 ### `src/user.ts`
 
@@ -141,7 +143,7 @@ import {
   getLinkedinCertifications,
 } from "linkedin-api-voyager";
 
-const identifier = "wesbush";
+const identifier = "florymignon";
 
 const mini = await getUserMiniProfile(identifier);
 const about = await getProfileSectionAbout(identifier);
@@ -150,7 +152,7 @@ const contact = await getContactInfo(identifier);
 const skills = await getLinkedinSkills(identifier);
 const education = await getLinkedinEducation(identifier);
 const certifications = await getLinkedinCertifications(identifier);
-```
+````
 
 ### `src/company.ts`
 
