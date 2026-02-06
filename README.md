@@ -12,11 +12,13 @@ yarn add linkedin-api-voyager
 
 ## Configuração (Obrigatório)
 
-A biblioteca funciona tanto no **backend (Node.js)** quanto no **frontend**. Você precisa inicializar o cliente com seus cookies uma única vez antes de fazer qualquer requisição.
+**Atenção:** Esta biblioteca deve ser executada **exclusivamente no lado do servidor (Node.js)**. O uso direto no navegador (client-side) resultará em erros de CORS e restrições de segurança.
+
+Se você estiver usando em uma aplicação web (React, Vue, etc.), você deve criar uma API ou função intermediária no seu backend para chamar esta biblioteca.
 
 ### 1. Inicialize o Client
 
-No ponto de entrada da sua aplicação (ex: `index.ts`, `app.tsx`, `server.ts`):
+No ponto de entrada da sua aplicação backend (ex: `index.ts`, `server.ts`):
 
 ```ts
 import { Client } from "linkedin-api-voyager";
