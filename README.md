@@ -1,5 +1,11 @@
 # LinkedIn API Voyager
 
+> ⚠️ **MUDANÇA DE PACOTE:** Esta biblioteca foi renomeada e movida de `linkedin-api-voyager` para `@florydev/linkedin-api-voyager`.
+> Por favor, atualize suas dependências. A versão antiga não receberá novas atualizações.
+
+[![npm version](https://img.shields.io/npm/v/@florydev/linkedin-api-voyager.svg)](https://www.npmjs.com/package/@florydev/linkedin-api-voyager)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Biblioteca TypeScript para interagir com endpoints internos do LinkedIn (Voyager). Esta não é uma API oficial.
 
 ## Instalação
@@ -91,6 +97,14 @@ A biblioteca exporta funções dos seguintes módulos:
 - `posts`: Interações com posts e comentários.
 - `search`: Busca de pessoas e empresas.
 - `utils`: Utilitários gerais.
+
+## Autor
+
+**Flory Muenge Tshiteya**
+
+- Github: [@Floryvibla](https://github.com/Floryvibla)
+- LinkedIn: [Flory Muenge Tshiteya](https://www.linkedin.com/in/florymignon/)
+- 🐦 X (Twitter): [@DevFlory](https://x.com/DevFlory)
 
 ````
 

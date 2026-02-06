@@ -1,10 +1,34 @@
 {
   "name": "@florydev/linkedin-api-voyager",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "Uma biblioteca TypeScript para interagir com a API interna do LinkedIn (Voyager)",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "license": "MIT",
+  "author": {
+    "name": "Flory Muenge Tshiteya",
+    "url": "https://github.com/Floryvibla"
+  },
+  "homepage": "https://github.com/Floryvibla/linkedin-api-voyager#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Floryvibla/linkedin-api-voyager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Floryvibla/linkedin-api-voyager/issues"
+  },
+  "keywords": [
+    "linkedin",
+    "api",
+    "voyager",
+    "typescript",
+    "scraper",
+    "crawler",
+    "nodejs",
+    "profile",
+    "company",
+    "search"
+  ],
   "files": [
     "lib/**/*"
   ],
