@@ -6,45 +6,44 @@ Biblioteca TypeScript para interagir com endpoints internos do LinkedIn (Voyager
 
 ```bash
 npm install linkedin-api-voyager
+# ou
+yarn add linkedin-api-voyager
 ```
 
-## Autenticação (cookies)
+## Configuração (Obrigatório)
 
-Para fazer requisições autenticadas, você precisa dos cookies `li_at` e `JSESSIONID` da sua sessão no LinkedIn.
+A biblioteca funciona tanto no **backend (Node.js)** quanto no **frontend**. Você precisa inicializar o cliente com seus cookies uma única vez antes de fazer qualquer requisição.
 
-### Onde pegar `li_at` e `JSESSIONID`
+### 1. Inicialize o Client
+
+No ponto de entrada da sua aplicação (ex: `index.ts`, `app.tsx`, `server.ts`):
+
+```ts
+import { Client } from "linkedin-api-voyager";
+
+// Configure suas credenciais uma única vez
+Client({
+  JSESSIONID: process.env.LINKEDIN_JSESSIONID, // ex: "ajax:123456789" (apenas os números se preferir, a lib trata)
+  li_at: process.env.LINKEDIN_LI_AT,           // ex: "AQEDAR..."
+});
+```
+
+### 2. Onde pegar `li_at` e `JSESSIONID`
 
 1. Faça login no LinkedIn pelo navegador.
 2. Abra o DevTools do navegador.
 3. Vá em:
    - Chrome/Edge: `Application` -> `Storage` -> `Cookies` -> `https://www.linkedin.com`
    - Firefox: `Storage` -> `Cookies` -> `https://www.linkedin.com`
-4. Copie os valores dos cookies:
-   - `li_at`: copie o valor inteiro.
-   - `JSESSIONID`: o valor costuma vir no formato `"ajax:123456789"`.
-     - Remova as aspas.
-     - Use apenas os números após `ajax:` (ex.: `123456789`).
+4. Copie os valores:
+   - `li_at`: valor completo.
+   - `JSESSIONID`: valor completo (ex: `"ajax:123456789"`).
 
-### Salvando cookies em `linkedin_cookies.json`
+> **Nota:** Nunca comite suas credenciais reais no código. Use variáveis de ambiente (`.env`).
 
-Por padrão, a lib procura o arquivo `linkedin_cookies.json` na raiz do seu projeto.
+## Exemplos de Uso
 
-Formato esperado:
-
-```json
-{
-  "JSESSIONID": "123456789",
-  "li_at": "AQEDAR...",
-  "timestamp": 1730000000000
-}
-```
-
-Observações:
-
-- O arquivo `linkedin_cookies.json` já está no `.gitignore`.
-- Não compartilhe esses cookies e não comite esse arquivo.
-
-## Uso rápido
+Após inicializar o `Client`, você pode importar e usar qualquer função diretamente:
 
 ```ts
 import {
@@ -55,49 +54,40 @@ import {
   getCommentsByPostUrl,
 } from "linkedin-api-voyager";
 
+// Exemplo: Buscar perfil
 const profile = await getUserMiniProfile("wesbush");
+console.log(profile);
+
+// Exemplo: Buscar experiências
 const experiences = await getProfissionalExperiences("wesbush");
+
+// Exemplo: Buscar empresa
 const company = await getCompany("microsoft");
+
+// Exemplo: Pesquisar pessoas
 const people = await searchPeople("software engineer");
+
+// Exemplo: Buscar comentários
 const comments = await getCommentsByPostUrl(
   "https://www.linkedin.com/feed/update/urn:li:activity-1234567890/",
 );
 ```
 
-## API (por arquivo em `src/`)
-
-O pacote reexporta os módulos listados em `src/index.ts`: `user`, `company`, `posts`, `search`, `utils`, `config`.
+## API
 
 ### `src/config.ts`
 
-Constantes exportadas:
+- `Client(config: { JSESSIONID: string; li_at: string })`: Configura a instância global do axios. Deve ser chamado antes de qualquer outra função.
+- `API_BASE_URL`: `https://www.linkedin.com/voyager/api`
 
-- `COOKIE_FILE_PATH`: caminho padrão do arquivo de cookies (`linkedin_cookies.json`).
-- `API_BASE_URL`: base URL das chamadas Voyager (`https://www.linkedin.com/voyager/api`).
-- `AUTH_BASE_URL`: base URL do LinkedIn (`https://www.linkedin.com`).
+### Módulos Disponíveis
 
-Funções exportadas:
-
-- `saveCookies(JSESSIONID: string, li_at: string): Promise<void>`
-  - Salva os cookies no `COOKIE_FILE_PATH`.
-- `loadCookies(): Promise<{ JSESSIONID: string; li_at: string; timestamp: number } | null>`
-  - Carrega e valida o arquivo de cookies.
-- `Client(providedCookies?: { JSESSIONID: string; li_at: string }): Promise<AxiosInstance>`
-  - Cria um cliente HTTP com headers/cookies.
-  - Se existir `linkedin_cookies.json`, usa ele.
-  - Se não existir e `providedCookies` for passado, salva e usa.
-- `fetchData(endpoint: string): Promise<any>`
-  - Faz um `GET` usando `Client()` e retorna `response.data`.
-
-Exemplo (salvar cookies e criar cliente):
-
-```ts
-import { Client, saveCookies } from "linkedin-api-voyager";
-
-await saveCookies("123456789", "AQEDAR...");
-const api = await Client();
-
-const me = await api.get("/me");
+A biblioteca exporta funções dos seguintes módulos:
+- `user`: Perfis e dados de usuário.
+- `company`: Dados de empresas.
+- `posts`: Interações com posts e comentários.
+- `search`: Busca de pessoas e empresas.
+- `utils`: Utilitários gerais.
 ```
 
 ### `src/user.ts`
