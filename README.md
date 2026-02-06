@@ -5,9 +5,9 @@ Biblioteca TypeScript para interagir com endpoints internos do LinkedIn (Voyager
 ## Instalação
 
 ```bash
-npm install linkedin-api-voyager
+npm install @florydev/linkedin-api-voyager
 # ou
-yarn add linkedin-api-voyager
+yarn add @florydev/linkedin-api-voyager
 ```
 
 ## Configuração (Obrigatório)
@@ -21,7 +21,7 @@ Se você estiver usando em uma aplicação web (React, Vue, etc.), você deve cr
 No ponto de entrada da sua aplicação backend (ex: `index.ts`, `server.ts`):
 
 ```ts
-import { Client } from "linkedin-api-voyager";
+import { Client } from "@florydev/linkedin-api-voyager";
 
 // Configure suas credenciais uma única vez
 Client({
@@ -54,7 +54,7 @@ import {
   getCompany,
   searchPeople,
   getCommentsByPostUrl,
-} from "linkedin-api-voyager";
+} from "@florydev/linkedin-api-voyager";
 
 // Exemplo: Buscar perfil
 const profile = await getUserMiniProfile("florymignon");
