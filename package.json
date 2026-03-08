@@ -36,6 +36,7 @@
     "build": "tsc",
     "prepare": "npm run build",
     "dev": "nodemon src/teste.ts",
+    "release": "npm run build && npm version patch --no-git-tag-version && npm publish --access public",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
