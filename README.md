@@ -87,6 +87,22 @@ const comments = await getCommentsByPostUrl(
 
 - `Client(config: { JSESSIONID: string; li_at: string })`: Configura a instância global do axios. Deve ser chamado antes de qualquer outra função.
 - `API_BASE_URL`: `https://www.linkedin.com/voyager/api`
+- `linkedinSSE(topics?: LinkedInRealtimeTopicsParam)`: Abre uma conexão SSE com o realtime do LinkedIn e emite somente os eventos dos tópicos desejados.
+
+Exemplo:
+
+```ts
+import { Client, linkedinSSE } from "@florydev/linkedin-api-voyager";
+
+Client({
+  JSESSIONID: process.env.LINKEDIN_JSESSIONID!,
+  li_at: process.env.LINKEDIN_LI_AT!,
+});
+
+await linkedinSSE(["Messages", "TypingIndicators"]);
+```
+
+Tópicos disponíveis (param): keys do enum `LinkedInRealtimeTopic` (ex.: `"Messages"`, `"TypingIndicators"`, `"Conversations"`).
 
 ### Módulos Disponíveis
 

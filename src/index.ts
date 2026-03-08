@@ -4,3 +4,5 @@ export * from "./posts";
 export * from "./search";
 export * from "./utils";
 export * from "./config";
+export * from "./message";
+export * from "./types";

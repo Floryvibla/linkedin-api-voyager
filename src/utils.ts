@@ -263,6 +263,10 @@ interface Experience {
   duration?: string | null;
 }
 
+export function encodeLinkedinUrn(raw: string): string {
+  return encodeURIComponent(raw).replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
+
 export const getDataIncludedForEntity = (
   jsonData: AnyObject,
   entityUrn: string,

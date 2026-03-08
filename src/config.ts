@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from "axios";
 
 export const API_BASE_URL = "https://www.linkedin.com/voyager/api";
 
-let apiInstance: AxiosInstance | null = null;
+export let apiInstance: AxiosInstance | null = null;
 
 export const Client = (providedCookies: {
   JSESSIONID: string;
@@ -21,12 +21,17 @@ export const Client = (providedCookies: {
   return apiInstance;
 };
 
-export const fetchData = async (endpoint: string) => {
+export const fetchData = async (
+  endpoint: string,
+  options?: { headers?: Record<string, string> },
+) => {
   if (!apiInstance) {
     throw new Error(
       "Client not initialized. Please call Client({ JSESSIONID, li_at }) first.",
     );
   }
-  const response = await apiInstance.get(endpoint);
+  const response = await apiInstance.get(endpoint, {
+    headers: options?.headers,
+  });
   return response.data;
 };

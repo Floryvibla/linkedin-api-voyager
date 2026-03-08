@@ -916,3 +916,42 @@ export type EntitySearchResult = {
     $type: string;
   };
 };
+
+export interface LinkedInConversation {
+  urn: string;
+  identifier: string;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  headline: string;
+  profilePicture: string | null;
+  lastMessage: {
+    text: string;
+    sentAt: Date;
+    isRead: boolean;
+  };
+  unreadCount: number;
+  isGroup: boolean;
+  participants: any[];
+}
+
+export interface LinkedInMessage {
+  id: string;
+  text: string;
+  sentAt: number;
+  media?: {
+    type: "VIDEO" | "IMAGE" | "FILE" | "AUDIO";
+    url: string | null;
+    thumbnail?: string | null;
+    duration?: number; // para vídeos/áudios
+    fileName?: string;
+  } | null;
+  sender: {
+    urn: string;
+    fullName: string;
+    firstName: string;
+    lastName: string;
+    profilePicture: string | null;
+    isSelf: boolean;
+  };
+}
