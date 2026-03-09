@@ -122,8 +122,7 @@ export async function linkedinSSE(
   });
 
   let buffer = "";
-  const onEvent = (data: unknown) =>
-    console.log("data: ", JSON.stringify(data, null, 2));
+  const onEvent = (data: unknown) => data;
   const onError = (error: unknown) =>
     console.log("error parsing part: ", error);
 
