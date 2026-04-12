@@ -58,6 +58,12 @@ export type ParseLinkedInSSEChunkArgs = {
   onError: (error: unknown) => void;
 };
 
+export type LinkedInSSEArgs = {
+  topics?: LinkedInRealtimeTopicsParam;
+  onData: (data: unknown) => void;
+  onError?: (error: unknown) => void;
+};
+
 export const parseLinkedInSSEChunk = ({
   buffer,
   chunk,
@@ -91,9 +97,11 @@ export const parseLinkedInSSEChunk = ({
   return nextBuffer;
 };
 
-export async function linkedinSSE(
-  topics?: LinkedInRealtimeTopicsParam,
-): Promise<void> {
+export async function linkedinSSE({
+  topics,
+  onData,
+  onError,
+}: LinkedInSSEArgs): Promise<void> {
   if (!apiInstance) {
     throw new Error(
       "Client not initialized. Please call Client({ JSESSIONID, li_at }) first.",
@@ -122,9 +130,10 @@ export async function linkedinSSE(
   });
 
   let buffer = "";
-  const onEvent = (data: unknown) => data;
-  const onError = (error: unknown) =>
-    console.log("error parsing part: ", error);
+  const onEvent = (data: unknown) => onData(data);
+  const onErr = (error: unknown) => {
+    if (onError) onError(error);
+  };
 
   response.data.on("data", (chunk: Buffer) => {
     buffer = parseLinkedInSSEChunk({
@@ -132,7 +141,7 @@ export async function linkedinSSE(
       chunk,
       topicsSet,
       onEvent,
-      onError,
+      onError: onErr,
     });
   });
 }

@@ -1,16 +1,27 @@
-import { Client } from "./config";
-import { getUserMiniProfile } from "./user";
+import { Client, fetchData } from "./config";
+import { linkedinSSE } from "./linkedin-sse";
+import { getMessages, getMessagingInboxConversations } from "./message";
+import { getCommentsByPostUrl, getPostLinkedin } from "./posts";
+import { extractProfileIdLinkedin, getUserMiniProfile } from "./user";
 
 Client({
-  JSESSIONID: "2687703175806319775",
+  JSESSIONID: "0466411065031579456",
   li_at:
-    "AQEDARgQ7uMA1d5dAAABmm_VFQcAAAGcT-gumU0Agr-WPhYEN-QPXcfx84Ct0mtL2WQqj9YrWiAR2onQlCPyIa9RWXygwj3JKVSY1elRE6DjH4y6nEE5I3NhxBpswfzbRBCIgKUYmKWeEblF1t9VeGDl",
+    "AQEDAU9C-sMEobZ6AAABmgzAd04AAAGdoxs1kU4AYDxi4dFa2JUkdsZHqpIU9JuPIhi6J_aMAPYQ5dIYJuv6jXBRj04t-4vhJvMHhlMF48-MRFPJDD-k5f8CYH4QESpzmpP4zMm6WKODloiizUwuthG8",
 });
 
-getUserMiniProfile("wesbush")
-  .then((profile) => {
-    console.log("profile: ", profile);
-  })
-  .catch((error) => {
-    console.log("error: ", error);
-  });
+async function start() {
+  const url =
+    "https://www.linkedin.com/posts/obrunookamoto_se-voc%C3%AA-usa-o-chatgpt-para-agora-mesmo-cancela-ugcPost-7444852024854306816-h1GG?utm_source=social_share_send&utm_medium=member_desktop_web&rcm=ACoAABgQ7uMBHhkeqe_cSk1_5fNcRa3Q1TZ8j0k";
+  try {
+    const response = await getCommentsByPostUrl(url);
+    console.log("response getCommentsByPostUrl: ", response);
+  } catch (error) {
+    console.error("ERROR: ", error);
+  }
+  // await getCommentsByPostUrl(
+  //   "https://www.linkedin.com/posts/obrunookamoto_se-voc%C3%AA-usa-o-chatgpt-para-agora-mesmo-cancela-ugcPost-7444852024854306816-h1GG?utm_source=social_share_send&utm_medium=member_desktop_web&rcm=ACoAABgQ7uMBHhkeqe_cSk1_5fNcRa3Q1TZ8j0k",
+  // );
+}
+
+start();
