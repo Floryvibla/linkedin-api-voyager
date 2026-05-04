@@ -22,16 +22,29 @@ export const parseResponsePostLinkedin = (
   return data;
 };
 
+function extractLinkedInPostType(url: string) {
+  const match = url.match(/-([a-zA-Z]+)-(\d+)/);
+
+  if (!match) return null;
+
+  return {
+    type: match[1],
+    id: match[2],
+    fullMatch: match[0],
+  };
+}
+
 export const getCommentsByPostUrl = async (
   url: string,
   start: number = 0,
   limit: number = 50,
   accumulatedComments: unknown[] = [],
 ): Promise<unknown[]> => {
-  const postID = url.match(/ugcPost-(\d+)/)?.[1];
+  const postID = url.match(/-(\d{10,})-/)?.[1];
+  const postType = extractLinkedInPostType(url)?.type;
 
   const response = await fetchData(
-    `/graphql?queryId=voyagerSocialDashComments.afec6d88d7810d45548797a8dac4fb87&variables=(count:${limit},start:${start},numReplies:1,socialDetailUrn:urn%3Ali%3Afsd_socialDetail%3A%28urn%3Ali%3AugcPost%${postID}%2Curn%3Ali%3AugcPost%3A${postID}%2Curn%3Ali%3AhighlightedReply%3A-%29,sortOrder:RELEVANCE)`,
+    `/graphql?queryId=voyagerSocialDashComments.afec6d88d7810d45548797a8dac4fb87&variables=(count:${limit},start:${start},numReplies:1,socialDetailUrn:urn%3Ali%3Afsd_socialDetail%3A%28urn%3Ali%3A${postType}%3A${postID}%2Curn%3Ali%3A${postType}%3A${postID}%2Curn%3Ali%3AhighlightedReply%3A-%29,sortOrder:RELEVANCE)`,
   );
 
   const elements = response.data?.data?.socialDashCommentsBySocialDetail?.[
