@@ -179,6 +179,7 @@ const people = await searchCompanyPeople({
   companyId,
   query: "engineer",
   pastCompany: false,
+  includePrivateProfiles: true,
   offset: 0,
   limit: 10,
 });

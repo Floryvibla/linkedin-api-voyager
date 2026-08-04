@@ -192,13 +192,6 @@ export async function searchPeople(
   };
 
   for (const result of res.results) {
-    if (
-      !includePrivateProfiles &&
-      result.entityCustomTrackingInfo?.memberDistance === "OUT_OF_NETWORK"
-    ) {
-      continue;
-    }
-
     const urnId = getIdFromUrn(getUrnFromRawUpdate(result.entityUrn));
     assert(urnId);
 
@@ -206,7 +199,7 @@ export async function searchPeople(
     assert(name);
 
     const url = result.navigationUrl?.split("?")[0];
-    assert(url);
+    if (!includePrivateProfiles && !url) continue;
 
     response.results.push({
       urnId,

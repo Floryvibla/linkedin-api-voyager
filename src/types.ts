@@ -757,7 +757,7 @@ export type ISearchCompanyPeopleParams = {
 export interface ProfileSearchResult {
   urnId: string;
   name: string;
-  url: string;
+  url?: string;
   image?: string;
   distance?: string;
   headline?: string;

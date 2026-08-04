@@ -23,7 +23,7 @@ const people = await searchPeople({
   keywordTitle: "CTO",
   keywordCompany: "Nubank",
   keywordSchool: "USP",
-  includePrivateProfiles: true, // padrão true aqui (diferente de searchCompanyPeople!)
+  includePrivateProfiles: true, // padrão true
   offset: 0,
   limit: 25,
 });
@@ -36,9 +36,10 @@ const people2 = await searchPeople("product manager");
 - `searchPeople` monta os `filters` do Voyager automaticamente a partir dos parâmetros de alto
   nível. `networkDepth`/`title` estão `@deprecated` no código — prefira `networkDepths`/
   `keywordTitle`.
-- `includePrivateProfiles` é `true` por padrão aqui, mas `false` por padrão em
-  `searchCompanyPeople` (ver `companies.md`) — inconsistência real da lib, vale checar
+- `includePrivateProfiles` é `true` por padrão aqui e também em
+  `searchCompanyPeople` (ver `companies.md`)
   explicitamente qual valor você quer em cada chamada.
+- Perfis privados podem vir sem `url`, mesmo quando incluídos no resultado.
 
 ## Convites de Rede
 

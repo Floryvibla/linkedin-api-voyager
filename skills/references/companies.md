@@ -37,7 +37,7 @@ const alumni = await searchCompanyPeople({
   schools: ["urn:li:school:..."], // opcional
   keywordTitle: "engineer", // opcional: filtro por cargo
   pastCompany: false, // true = ex-funcionários; false (padrão) = atuais
-  includePrivateProfiles: false, // padrão false: descarta "LinkedIn Member" sem nome público
+  includePrivateProfiles: true, // padrão true: mantém alinhado com searchPeople
   offset: 0,
   limit: 10, // máx. 49 por chamada
 });
@@ -46,7 +46,8 @@ const alumni = await searchCompanyPeople({
 
 - `getCompanyEntityId(slug)` lança erro (`assert`) se a empresa não for encontrada — trate isso se o slug puder vir errado do usuário.
 - `searchCompanyPeople` aceita `companyId` OU `companySlug`; se só passar o slug, a lib resolve o ID automaticamente com uma chamada extra (uma a mais que passar `companyId` direto).
-- Repare que aqui `includePrivateProfiles` é `false` por padrão — o oposto do padrão de `searchPeople` (ver `search-network.md`). Se notar resultados "faltando", é provável que sejam perfis privados sendo descartados por esse default.
+- `includePrivateProfiles` agora segue o mesmo padrão de `searchPeople`: `true` por padrão. Se quiser ocultar perfis privados, passe `false` explicitamente.
+- Perfis privados podem aparecer no resultado com `name`/`headline`, mas sem `url`.
 
 ## Tipos relevantes
 

@@ -1,21 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { fetchDataApi } from "./config";
-import { getIdFromUrn, assert, extractDataWithReferences } from "./utils";
 import {
+  EntitySearchResult,
   ISearchCompanyPeopleParams,
   ISearchPeopleResponse,
   ProfileSearchResult,
 } from "./types";
+import { assert, extractDataWithReferences, getIdFromUrn } from "./utils";
 
 const MINI_COMPANY_DECORATION =
   "com.linkedin.voyager.dash.deco.organization.MiniCompany-10";
 const SEARCH_CLUSTERS_QUERY_ID =
   "voyagerSearchDashClusters.a7a0567fa66c52d645b5ff2f960b92aa";
+const innerProfile = (s: string) =>
+  s.match(/\((urn:li:fsd_profile:[^,)]+)/)?.[1];
 
 export const getCompanyEntityId = async (slug: string): Promise<string> => {
-  const uri =
-    `/voyagerOrganizationDashCompanies?decorationId=${MINI_COMPANY_DECORATION}` +
-    `&q=universalName&universalName=${encodeURIComponent(slug)}`;
+  const uri = `/voyagerOrganizationDashCompanies?decorationId=${MINI_COMPANY_DECORATION}&q=universalName&universalName=${encodeURIComponent(slug)}`;
   const res = await fetchDataApi(uri);
   const els = extractDataWithReferences(
     res?.data?.["*elements"] ?? [],
@@ -26,90 +27,104 @@ export const getCompanyEntityId = async (slug: string): Promise<string> => {
   return urn.split(":").at(-1) as string;
 };
 
-const innerProfile = (s: string) =>
-  s.match(/\((urn:li:fsd_profile:[^,)]+)/)?.[1];
+const resolveEntity = (
+  item: any,
+  included: any[],
+): EntitySearchResult | null => {
+  if (item?.entityResult) return item.entityResult;
+  const urn = item?.["*entityResult"];
+  return (urn && included.find((entry) => entry.entityUrn === urn)) || null;
+};
 
-const mapPerson = (vm: any): ProfileSearchResult | null => {
-  const name = vm?.title?.text,
-    nav = vm?.navigationUrl?.split("?")[0];
-  if (!name || !nav) return null;
+const mapPerson = (vm: EntitySearchResult): ProfileSearchResult | null => {
+  const name = vm.title?.text,
+    url = vm.navigationUrl?.split("?")[0];
+  if (!name) return null;
   const inner = vm.entityUrn ? innerProfile(vm.entityUrn) : undefined;
   const urnId =
     (inner ? getIdFromUrn(inner) : undefined) ??
     getIdFromUrn(getIdFromUrn(vm.entityUrn)) ??
     getIdFromUrn(vm.entityUrn) ??
     name;
-  const vec =
-    vm.image?.attributes?.[0]?.detailData?.nonEntityProfilePicture?.vectorImage;
+  const image =
+    vm.image?.attributes?.[0]?.detailData?.nonEntityProfilePicture?.vectorImage
+      ?.artifacts?.[0]?.fileIdentifyingUrlPathSegment ?? null;
   return {
     urnId,
     name,
-    url: nav,
+    url,
     distance: vm.entityCustomTrackingInfo?.memberDistance,
     headline: vm.primarySubtitle?.text,
     location: vm.secondarySubtitle?.text,
     summary: vm.summary?.text || undefined,
-    image: vec?.artifacts?.[0]?.fileIdentifyingUrlPathSegment ?? null,
+    image,
   };
 };
 
 const buildVars = (
   cid: string,
   p: ISearchCompanyPeopleParams,
-  s: number,
-  c: number,
+  start: number,
+  count: number,
 ): string => {
-  const kvs: string[] = [
+  const params = [
     `(key:${p.pastCompany ? "pastCompany" : "currentCompany"},value:List(${cid}))`,
-    `(key:resultType,value:List(ORGANIZATION_ALUMNI))`,
+    "(key:resultType,value:List(ORGANIZATION_ALUMNI))",
+    ...(p.query
+      ? [`(key:keywords,value:List(${encodeURIComponent(p.query)}))`]
+      : []),
+    ...(p.regions?.length
+      ? [`(key:geoUrn,value:List(${p.regions.join(" | ")}))`]
+      : []),
+    ...(p.schools?.length
+      ? [`(key:schools,value:List(${p.schools.join(" | ")}))`]
+      : []),
+    ...(p.keywordTitle ? [`(key:title,value:List(${p.keywordTitle}))`] : []),
   ];
-  if (p.query)
-    kvs.push(`(key:keywords,value:List(${encodeURIComponent(p.query)}))`);
-  if (p.regions?.length)
-    kvs.push(`(key:geoUrn,value:List(${p.regions.join(" | ")}))`);
-  if (p.schools?.length)
-    kvs.push(`(key:schools,value:List(${p.schools.join(" | ")}))`);
-  if (p.keywordTitle) kvs.push(`(key:title,value:List(${p.keywordTitle}))`);
-  const qp: string[] = [
+  const query = [
     "flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI",
-    `queryParameters:List(${kvs.join(",")})`,
+    `queryParameters:List(${params.join(",")})`,
     "includeFiltersInResponse:false",
   ];
-  if (p.query) qp.unshift(`keywords:${encodeURIComponent(p.query)}`);
-  return `(start:${s},origin:FACETED_SEARCH,query:(${qp.join(",")}),count:${c})`;
+  if (p.query) query.unshift(`keywords:${encodeURIComponent(p.query)}`);
+  return `(start:${start},origin:FACETED_SEARCH,query:(${query.join(",")}),count:${count})`;
 };
 
 export const searchCompanyPeople = async (
   p: ISearchCompanyPeopleParams,
 ): Promise<ISearchPeopleResponse> => {
   const offset = p.offset ?? 0,
-    count = Math.min(p.limit ?? 10, 49);
-  let cid = p.companyId;
-  if (!cid) {
+    count = Math.min(p.limit ?? 10, 49),
+    includePrivateProfiles = p.includePrivateProfiles ?? true;
+  let companyId = p.companyId;
+  if (!companyId) {
     assert(p.companySlug, "Either companySlug or companyId is required");
-    cid = await getCompanyEntityId(p.companySlug);
+    companyId = await getCompanyEntityId(p.companySlug);
   }
-  const res = await fetchDataApi(
-    `/graphql?variables=${buildVars(cid, p, offset, count)}&queryId=${SEARCH_CLUSTERS_QUERY_ID}`,
-  );
+  const uri = `/graphql?variables=${buildVars(companyId, p, offset, count)}&queryId=${SEARCH_CLUSTERS_QUERY_ID}`;
+  const res = await fetchDataApi(uri);
   const root = res?.data?.data?.searchDashClustersByAll,
-    pg = root?.paging;
-  const urns: string[] = [];
-  for (const cl of root?.elements ?? [])
-    for (const it of cl?.items ?? [])
-      if (it?.item?.["*entityResult"]) urns.push(it.item["*entityResult"]);
-  const vms = extractDataWithReferences(urns, res?.included ?? []);
-  const results: ProfileSearchResult[] = [];
-  for (const vm of vms) {
-    const m = mapPerson(vm);
-    if (m && (p.includePrivateProfiles || m.name !== "LinkedIn Member"))
-      results.push(m);
-  }
+    paging = root?.paging,
+    included = res?.included ?? [];
+  const urns = (root?.elements ?? []).flatMap((cluster: any) =>
+    (cluster?.items ?? [])
+      .map((entry: any) => resolveEntity(entry?.item, included)?.entityUrn)
+      .filter(Boolean),
+  );
+  const entities = extractDataWithReferences(
+    urns,
+    included,
+  ) as EntitySearchResult[];
+  const results = entities
+    .map(mapPerson)
+    .filter((item): item is ProfileSearchResult =>
+      Boolean(item && (includePrivateProfiles || item.url)),
+    );
   return {
     paging: {
-      offset: pg?.start ?? offset,
-      count: pg?.count ?? results.length,
-      total: root?.metadata?.totalResultCount ?? pg?.total ?? -1,
+      offset: paging?.start ?? offset,
+      count: paging?.count ?? results.length,
+      total: root?.metadata?.totalResultCount ?? paging?.total ?? -1,
     },
     results,
   };
