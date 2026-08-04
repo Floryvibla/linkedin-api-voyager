@@ -1,319 +1,460 @@
 # LinkedIn API Voyager
 
-> ⚠️ **MUDANÇA DE PACOTE:** Esta biblioteca foi renomeada e movida de `linkedin-api-voyager` para `@florydev/linkedin-api-voyager`.
-> Por favor, atualize suas dependências. A versão antiga não receberá novas atualizações.
+> Biblioteca TypeScript para interagir com endpoints internos do LinkedIn Web (Voyager API).
+
+> Aviso importante: esta biblioteca **não usa a API oficial do LinkedIn**.
 
 [![npm version](https://img.shields.io/npm/v/@florydev/linkedin-api-voyager.svg)](https://www.npmjs.com/package/@florydev/linkedin-api-voyager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Biblioteca TypeScript para interagir com endpoints internos do LinkedIn (Voyager). Esta não é uma API oficial.
+## Mudança de pacote
+
+O pacote antigo `linkedin-api-voyager` foi renomeado para `@florydev/linkedin-api-voyager`.
+
+```bash
+yarn add @florydev/linkedin-api-voyager
+```
+
+## O que esta biblioteca faz
+
+Esta biblioteca encapsula chamadas para endpoints internos usados pelo frontend do LinkedIn e normaliza as respostas para uso em aplicações Node.js.
+
+Ela cobre:
+
+- perfis de usuário
+- experiências, skills, educação e certificações
+- dados de empresas
+- busca de pessoas
+- busca de pessoas por empresa
+- posts e comentários
+- inbox e mensagens
+- convites de conexão
+- eventos em tempo real via SSE
+
+## Requisitos
+
+- Node.js
+- sessão autenticada no LinkedIn
+- cookies válidos `li_at` e `JSESSIONID`
+
+Esta biblioteca deve ser usada **somente no backend**. Não use no browser.
 
 ## Instalação
 
 ```bash
-npm install @florydev/linkedin-api-voyager
-# ou
 yarn add @florydev/linkedin-api-voyager
 ```
 
-## Configuração (Obrigatório)
+## Configuração obrigatória
 
-**Atenção:** Esta biblioteca deve ser executada **exclusivamente no lado do servidor (Node.js)**. O uso direto no navegador (client-side) resultará em erros de CORS e restrições de segurança.
-
-Se você estiver usando em uma aplicação web (React, Vue, etc.), você deve criar uma API ou função intermediária no seu backend para chamar esta biblioteca.
-
-### 1. Inicialize o Client
-
-No ponto de entrada da sua aplicação backend (ex: `index.ts`, `server.ts`):
+Você precisa inicializar o `Client()` uma única vez antes de chamar qualquer função.
 
 ```ts
 import { Client } from "@florydev/linkedin-api-voyager";
 
-// Configure suas credenciais uma única vez
 Client({
-  JSESSIONID: process.env.LINKEDIN_JSESSIONID, // ex: "ajax:123456789" (apenas os números se preferir, a lib trata)
-  li_at: process.env.LINKEDIN_LI_AT, // ex: "AQEDAR..."
+  li_at: process.env.LINKEDIN_LI_AT!,
+  JSESSIONID: process.env.LINKEDIN_JSESSIONID!,
 });
 ```
 
-### 2. Onde pegar `li_at` e `JSESSIONID`
+### Como obter `li_at` e `JSESSIONID`
 
-1. Faça login no LinkedIn pelo navegador.
-2. Abra o DevTools do navegador.
-3. Vá em:
-   - Chrome/Edge: `Application` -> `Storage` -> `Cookies` -> `https://www.linkedin.com`
-   - Firefox: `Storage` -> `Cookies` -> `https://www.linkedin.com`
-4. Copie os valores:
-   - `li_at`: valor completo.
-   - `JSESSIONID`: valor completo (ex: `"ajax:123456789"`).
+1. Faça login no LinkedIn no navegador.
+2. Abra o DevTools.
+3. Vá em `Application` ou `Storage`.
+4. Abra `Cookies` de `https://www.linkedin.com`.
+5. Copie:
+   - `li_at`
+   - `JSESSIONID`
 
-> **Nota:** Nunca comite suas credenciais reais no código. Use variáveis de ambiente (`.env`).
+## Importante sobre o `JSESSIONID`
 
-## Exemplos de Uso
+Passe somente o valor base do cookie no `Client`.
 
-Após inicializar o `Client`, você pode importar e usar qualquer função diretamente:
+Exemplo seguro:
 
 ```ts
+Client({
+  li_at: "AQED....",
+  JSESSIONID: "1234567890",
+});
+```
+
+Se você copiar algo como `"ajax:1234567890"` do navegador, normalize antes de passar.
+
+## Exemplo rápido
+
+```ts
+import "dotenv/config";
 import {
+  Client,
   getUserMiniProfile,
-  getProfissionalExperiences,
   getCompany,
   searchPeople,
-  getCommentsByPostUrl,
 } from "@florydev/linkedin-api-voyager";
 
-// Exemplo: Buscar perfil
-const profile = await getUserMiniProfile("florymignon");
-console.log(profile);
-
-// Exemplo: Buscar experiências
-const experiences = await getProfissionalExperiences("florymignon");
-
-// Exemplo: Buscar empresa
-const company = await getCompany("microsoft");
-
-// Exemplo: Pesquisar pessoas
-const people = await searchPeople("software engineer");
-
-// Exemplo: Buscar comentários
-const comments = await getCommentsByPostUrl(
-  "https://www.linkedin.com/feed/update/urn:li:activity-1234567890/",
-);
-```
-
-## API
-
-### `src/config.ts`
-
-- `Client(config: { JSESSIONID: string; li_at: string })`: Configura a instância global do axios. Deve ser chamado antes de qualquer outra função.
-- `API_BASE_URL`: `https://www.linkedin.com/voyager/api`
-- `linkedinSSE(topics?: LinkedInRealtimeTopicsParam)`: Abre uma conexão SSE com o realtime do LinkedIn e emite somente os eventos dos tópicos desejados.
-
-Exemplo:
-
-```ts
-import { Client, linkedinSSE } from "@florydev/linkedin-api-voyager";
-
 Client({
-  JSESSIONID: process.env.LINKEDIN_JSESSIONID!,
   li_at: process.env.LINKEDIN_LI_AT!,
+  JSESSIONID: process.env.LINKEDIN_JSESSIONID!,
 });
 
-await linkedinSSE(["Messages", "TypingIndicators"]);
+async function main() {
+  const profile = await getUserMiniProfile("florymignon");
+  const company = await getCompany("microsoft");
+  const people = await searchPeople({
+    query: "software engineer",
+    regions: ["br:0"],
+  });
+
+  console.log({
+    profile,
+    company,
+    totalPeople: people.results.length,
+  });
+}
+
+main().catch(console.error);
 ```
 
-Tópicos disponíveis (param): keys do enum `LinkedInRealtimeTopic` (ex.: `"Messages"`, `"TypingIndicators"`, `"Conversations"`).
+## API pública
 
-### Módulos Disponíveis
-
-A biblioteca exporta funções dos seguintes módulos:
-
-- `user`: Perfis e dados de usuário.
-- `company`: Dados de empresas.
-- `posts`: Interações com posts e comentários.
-- `search`: Busca de pessoas e empresas.
-- `utils`: Utilitários gerais.
-
-## Autor
-
-**Flory Muenge Tshiteya**
-
-- Github: [@Floryvibla](https://github.com/Floryvibla)
-- LinkedIn: [Flory Muenge Tshiteya](https://www.linkedin.com/in/florymignon/)
-- 🐦 X (Twitter): [@DevFlory](https://x.com/DevFlory)
-
-````
-
-### `src/user.ts`
-
-Tipos exportados:
-
-- `MiniUserProfileLinkedin`
-
-Funções exportadas:
-
-- `getUserMiniProfile(identifier: string): Promise<MiniUserProfileLinkedin>`
-  - Busca dados básicos do perfil (nome, headline, imagens) e também o `about`.
-  - `identifier` é o `publicIdentifier` (parte final da URL `linkedin.com/in/<identifier>`).
-
-- `extractProfileIdLinkedin(profileUrl: string): Promise<string | null>`
-  - Extrai o `publicIdentifier` de uma URL `linkedin.com/in/...`.
-  - Se você passar apenas o identificador, ele tenta usar diretamente.
-  - Retorna o ID numérico interno (sem o prefixo `urn:li:fsd_profile:`) quando encontra.
-
-- `getProfileSectionAbout(identifier: string): Promise<string | null>`
-  - Retorna o texto de “Sobre” (about) do perfil.
-
-- `getProfissionalExperiences(identifier: string): Promise<Array<any>>`
-  - Retorna a lista de experiências profissionais.
-  - Para cada experiência, tenta enriquecer com dados de empresa via `getCompany`.
-
-- `getContactInfo(identifier: string): Promise<{ ... }>`
-  - Retorna informações de contato quando disponíveis (email, telefones, sites etc.).
-
-- `getLinkedinSkills(identifier: string): Promise<Array<string | null>>`
-  - Retorna as skills (habilidades) listadas no perfil.
-
-- `getLinkedinEducation(identifier: string): Promise<Array<any>>`
-  - Retorna a educação (escola, degree, datas, skills relacionadas quando houver).
-
-- `getLinkedinCertifications(identifier: string): Promise<Array<any>>`
-  - Retorna certificações.
-
-Exemplo:
+### Perfis
 
 ```ts
 import {
+  getMe,
   getUserMiniProfile,
+  extractProfileIdLinkedin,
   getProfileSectionAbout,
   getProfissionalExperiences,
   getContactInfo,
   getLinkedinSkills,
   getLinkedinEducation,
   getLinkedinCertifications,
-} from "linkedin-api-voyager";
+} from "@florydev/linkedin-api-voyager";
+```
 
-const identifier = "florymignon";
-
-const mini = await getUserMiniProfile(identifier);
-const about = await getProfileSectionAbout(identifier);
-const experiences = await getProfissionalExperiences(identifier);
-const contact = await getContactInfo(identifier);
-const skills = await getLinkedinSkills(identifier);
-const education = await getLinkedinEducation(identifier);
-const certifications = await getLinkedinCertifications(identifier);
-````
-
-### `src/company.ts`
-
-Funções exportadas:
-
-- `getCompany(identifier: string): Promise<any>`
-  - Busca dados de uma empresa pelo `universalName` (slug da página).
-  - Exemplo de slug: `https://www.linkedin.com/company/microsoft/` -> `microsoft`.
+- `getMe()` -> perfil da sessão autenticada
+- `getUserMiniProfile(identifier)` -> mini perfil por `publicIdentifier`
+- `extractProfileIdLinkedin(profileUrl)` -> resolve o ID interno do perfil
+- `getProfileSectionAbout(identifier)` -> texto da seção About
+- `getProfissionalExperiences(identifier)` -> experiências profissionais
+- `getContactInfo(identifier)` -> informações de contato
+- `getLinkedinSkills(identifier)` -> skills
+- `getLinkedinEducation(identifier)` -> educação
+- `getLinkedinCertifications(identifier)` -> certificações
 
 Exemplo:
 
 ```ts
-import { getCompany } from "linkedin-api-voyager";
+const profile = await getUserMiniProfile("florymignon");
+const experiences = await getProfissionalExperiences("florymignon");
+const contact = await getContactInfo("florymignon");
+```
+
+### Empresas
+
+```ts
+import { getCompany } from "@florydev/linkedin-api-voyager";
 
 const company = await getCompany("microsoft");
 ```
 
-### `src/posts.ts`
+O parâmetro é o slug da URL da empresa:
 
-Funções exportadas:
+- `https://www.linkedin.com/company/microsoft/` -> `"microsoft"`
 
-- `parseResponsePostLinkedin(response: any, key: string, accumulatedData: any): any`
-  - Helper para selecionar itens do `included` a partir de `*elements`.
-
-- `getCommentsByPostUrl(url: string, start = 0, limit = 50, accumulatedComments: unknown[] = []): Promise<unknown[]>`
-  - Busca comentários de um post (paginando recursivamente até acabar).
-
-- `getPosts(): Promise<unknown[]>`
-  - Atualmente retorna `[]` (placeholder).
-
-- `getPostLinkedin(url: string, commentsCount = 10, likesCount = 10): Promise<any>`
-  - Busca um post pelo slug da URL e retorna os dados do post e do autor.
-
-- `getUserPosts({ identifier, start = 0, count = 50, accumulatedPosts = [] }): Promise<any>`
-  - Busca posts do usuário por `identifier` (publicIdentifier).
-
-- `helperGetPosts(response: any, key: string, accumulatedPosts?: any, addFields?: Record<string, string>): any`
-  - Helper para extrair posts e contagens (likes, comentários, shares).
-
-- `helperGetImageUrl(item: any): string`
-  - Helper para montar a URL de imagem, priorizando o maior artifact.
-
-Exemplo (comentários):
+### Pessoas de uma empresa
 
 ```ts
-import { getCommentsByPostUrl } from "linkedin-api-voyager";
+import {
+  getCompanyEntityId,
+  searchCompanyPeople,
+} from "@florydev/linkedin-api-voyager";
 
+const companyId = await getCompanyEntityId("microsoft");
+
+const people = await searchCompanyPeople({
+  companyId,
+  query: "engineer",
+  pastCompany: false,
+  offset: 0,
+  limit: 10,
+});
+```
+
+Campos úteis:
+
+- `companySlug`
+- `companyId`
+- `query`
+- `regions`
+- `schools`
+- `keywordTitle`
+- `pastCompany`
+- `includePrivateProfiles`
+
+## Busca
+
+### Busca geral
+
+```ts
+import { search } from "@florydev/linkedin-api-voyager";
+
+const res = await search({
+  query: "react developer",
+  offset: 0,
+  limit: 25,
+});
+```
+
+### Busca de pessoas
+
+```ts
+import { searchPeople } from "@florydev/linkedin-api-voyager";
+
+const people = await searchPeople({
+  query: "engenheiro de software",
+  regions: ["br:0"],
+  currentCompany: ["urn:li:fsd_company:1035"],
+  networkDepths: ["F", "S"],
+  keywordTitle: "CTO",
+});
+```
+
+Observações:
+
+- `search()` limita cada chamada a no máximo `25` resultados.
+- `searchPeople()` aceita string simples ou objeto com filtros.
+- `networkDepths` usa:
+  - `F` -> 1º grau
+  - `S` -> 2º grau
+  - `O` -> fora da rede
+
+## Posts e comentários
+
+```ts
+import {
+  getPostLinkedin,
+  getCommentsByPostUrl,
+  getUserPosts,
+} from "@florydev/linkedin-api-voyager";
+```
+
+### Post por URL
+
+```ts
+const post = await getPostLinkedin(
+  "https://www.linkedin.com/posts/florymignon_...-activity-1234567890-abcd",
+  10,
+  10,
+);
+```
+
+### Comentários de um post
+
+```ts
 const comments = await getCommentsByPostUrl(
   "https://www.linkedin.com/feed/update/urn:li:activity-1234567890/",
 );
 ```
 
-### `src/search.ts`
+### Posts de um usuário
 
-Constantes internas:
+```ts
+const posts = await getUserPosts({
+  identifier: "florymignon",
+  start: 0,
+  count: 50,
+});
+```
 
-- `MAX_SEARCH_COUNT = 25` (limite máximo por chamada na busca geral)
+Observações:
 
-Funções exportadas:
+- `getCommentsByPostUrl()` pagina recursivamente até acabar.
+- `getPosts()` existe, mas hoje é placeholder e retorna `[]`.
 
-- `search(params: ISearchParams): Promise<SearchResponse>`
-  - Busca geral usando `query` e/ou `filters` (formato Voyager).
-  - Aceita paginação via `offset`.
+## Mensagens e inbox
 
-- `searchPeople(queryOrParams: string | ISearchPeopleParams): Promise<ISearchPeopleResponse>`
-  - Busca pessoas com helpers para montar filtros (networkDepth, regiões, empresas etc.).
+```ts
+import {
+  getMessagingInboxConversations,
+  getMessages,
+} from "@florydev/linkedin-api-voyager";
+```
+
+### Conversas da inbox
+
+```ts
+const conversations = await getMessagingInboxConversations({
+  identifier: "florymignon",
+});
+```
+
+### Mensagens de uma conversa
+
+```ts
+const messages = await getMessages(conversations[0].urn);
+```
+
+O retorno já trata mídia como:
+
+- `VIDEO`
+- `IMAGE`
+- `FILE`
+- `AUDIO`
+
+## Convites de conexão
+
+```ts
+import {
+  receivedInvitation,
+  sentInvitation,
+} from "@florydev/linkedin-api-voyager";
+
+const received = await receivedInvitation({ start: 0, count: 10 });
+const sent = await sentInvitation({ start: 0, count: 10 });
+```
+
+## Tempo real com SSE
+
+```ts
+import {
+  Client,
+  linkedinSSE,
+  LinkedInRealtimeTopic,
+} from "@florydev/linkedin-api-voyager";
+
+Client({
+  li_at: process.env.LINKEDIN_LI_AT!,
+  JSESSIONID: process.env.LINKEDIN_JSESSIONID!,
+});
+
+await linkedinSSE({
+  topics: ["Messages", "TypingIndicators", "Conversations"],
+  onData: (data) => console.log(data),
+  onError: (error) => console.error(error),
+});
+```
+
+Algumas topics disponíveis:
+
+- `Messages`
+- `TypingIndicators`
+- `Conversations`
+- `Reactions`
+- `Comments`
+
+## Utilitários
+
+```ts
+import {
+  extractFields,
+  resolveReferences,
+  extractDataWithReferences,
+  getIdFromUrn,
+  isLinkedInUrn,
+  normalizeRawOrganization,
+} from "@florydev/linkedin-api-voyager";
+```
+
+Esses helpers são úteis quando você quer consumir um endpoint cru do Voyager e montar seu próprio parser.
 
 Exemplo:
 
 ```ts
-import { search, searchPeople } from "linkedin-api-voyager";
-
-const res = await search({ query: "react developer" });
-const people = await searchPeople({
-  query: "engenheiro de software",
-  regions: ["br:0"],
-});
-```
-
-### `src/utils.ts`
-
-Funções exportadas (helpers usados em parsing e normalização):
-
-- `filterKeys(obj: any, keysToKeep: string[]): any`
-- `filterOutKeys(obj: any, keysToIgnore: string[]): any`
-- `getNestedValue(obj: any, path: string): any`
-- `extractFields(data: any[], fieldsMap: Record<string, string>): any[]`
-- `debugObjectStructure(obj: any, maxDepth = 3, currentDepth = 0): void`
-- `resolveReferences(data: any, included: any[]): any`
-- `extractDataWithReferences(elements: string[], included: any[], fieldsMap?: Record<string, string>): any[]`
-- `debugResolvedStructure(elements: string[], included: any[], maxDepth = 2): void`
-- `extractFieldsFromIncluded(included: any[], fields: string[]): Array<Record<string, any>>`
-- `mergeExtraFields(mainData: any[], extraData: Array<Record<string, any>>, matchKey = "companyUrn"): any[]`
-- `getDataIncludedForEntity(jsonData: Record<string, any>, entityUrn: string): any`
-- `extractExperiences(jsonData: Record<string, any>): Array<{ role: string | null; idCompany: string | null; company: string | null; ... }>`
-- `assert(value: unknown, message?: string | Error): asserts value`
-- `getIdFromUrn(urn?: string): string | undefined`
-- `getUrnFromRawUpdate(update?: string): string | undefined`
-- `isLinkedInUrn(urn?: string): boolean`
-- `parseExperienceItem(item: any, opts: { isGroupItem?: boolean; included: any[] }): ExperienceItem`
-- `getGroupedItemId(item: any): string | undefined`
-- `omit(inputObj: object, ...keys: string[]): object`
-- `resolveImageUrl(vectorImage?: VectorImage): string | undefined`
-- `resolveLinkedVectorImageUrl(linkedVectorImage?: LinkedVectorImage): string | undefined`
-- `stringifyLinkedInDate(date?: LIDate): string | undefined`
-- `normalizeRawOrganization(o?: RawOrganization): Organization`
-
-Exemplo (mapear campos com path aninhado):
-
-```ts
-import { extractFields } from "linkedin-api-voyager";
-
 const fieldsMap = {
-  nome: "firstName",
+  name: "firstName",
   headline: "headline",
-  foto: "profilePicture.displayImageReferenceResolutionResult.vectorImage.rootUrl",
 };
 
-const mapped = extractFields([someObject], fieldsMap);
+const data = extractFields([someObject], fieldsMap);
 ```
 
-### `src/types.ts`
+## Funções internas importantes
 
-Este arquivo exporta tipos e interfaces TypeScript usados pela biblioteca (por exemplo: `ISearchParams`, `ISearchPeopleParams`, `SearchResponse`, `Organization`, `ExperienceItem`).
+### `Client()`
 
-## Limitações e considerações
+Inicializa a instância global usada por toda a lib.
 
-- Usa endpoints internos do LinkedIn (Voyager), que podem mudar sem aviso.
-- Requer cookies válidos de uma sessão autenticada.
-- Use com moderação para reduzir risco de bloqueio.
-- Respeite os termos de uso do LinkedIn.
+### `fetchDataApi()`
+
+Usa o prefixo `/voyager/api` e faz chamadas GET para endpoints internos do LinkedIn.
+
+### `fetchDataClient()`
+
+Usado para inspecionar redirects sem seguir automaticamente a resposta.
+
+## Erros
+
+O projeto exporta:
+
+- `LinkedInClientNotInitializedError`
+- `LinkedInAuthRedirectError`
+
+Na prática, uma parte da base ainda lança `Error` simples com mensagens equivalentes. Então trate erros tanto por classe quanto por mensagem quando necessário.
+
+## Limitações
+
+- Esta biblioteca depende de endpoints internos do LinkedIn, então pode quebrar sem aviso.
+- É necessário manter cookies válidos.
+- O uso excessivo pode gerar bloqueio, challenge ou expiração de sessão.
+- Algumas rotas têm respostas muito aninhadas e mudam com frequência.
+
+## Segurança
+
+- Nunca commite `li_at` e `JSESSIONID`.
+- Nunca use essa lib no frontend.
+- Nunca trate `src/teste.ts` como exemplo de produção.
+- Se usar `.env`, deixe esse arquivo fora do versionamento.
+
+## Desenvolvimento do repositório
+
+### Scripts da raiz
+
+```bash
+yarn
+yarn build
+yarn dev
+```
+
+### Estrutura principal
+
+- `src/config.ts` -> cliente HTTP e helpers base
+- `src/user.ts` -> perfis
+- `src/company.ts` -> empresas
+- `src/company-people.ts` -> pessoas por empresa
+- `src/search.ts` -> busca
+- `src/posts.ts` -> posts e comentários
+- `src/message.ts` -> inbox e mensagens
+- `src/newtwork.ts` -> convites
+- `src/linkedin-sse.ts` -> realtime
+- `src/utils.ts` -> parsing e normalização
+- `src/types.ts` -> contratos TypeScript
+- `src/index.ts` -> exports públicos
+
+### Worker auxiliar
+
+O repo também possui `worker-service/`, um subprojeto local para SSE + BullMQ + Redis + Supabase.
+
+Comandos:
+
+```bash
+yarn --cwd worker-service build
+yarn --cwd worker-service start
+```
+
+## Referências internas do projeto
+
+Se você estiver mantendo esta lib, estes arquivos ajudam bastante:
+
+- `skills/references/profiles.md`
+- `skills/references/companies.md`
+- `skills/references/posts.md`
+- `skills/references/search-network.md`
+- `skills/references/realtime.md`
+- `skills/references/internals.md`
 
 ## Licença
 
