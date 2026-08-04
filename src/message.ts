@@ -1,4 +1,4 @@
-import { fetchData } from "./config";
+import { fetchDataApi } from "./config";
 import { LinkedInMessage } from "./types";
 import { extractProfileIdLinkedin } from "./user";
 import { encodeLinkedinUrn } from "./utils";
@@ -102,7 +102,7 @@ export const getMessagingInboxConversations = async (input: {
   const mailboxUrn = await resolveMailboxUrn(input);
   const queryId = input.queryId ?? DEFAULT_INBOX_QUERY_ID;
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `/voyagerMessagingGraphQL/graphql?queryId=${queryId}&variables=(mailboxUrn:${encodeURIComponent(mailboxUrn)})`,
     { headers: { accept: "application/graphql" } },
   );
@@ -115,7 +115,7 @@ export const getMessagingInboxConversations = async (input: {
 export const getMessages = async (
   conversationUrn: string,
 ): Promise<LinkedInMessage[]> => {
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `/voyagerMessagingGraphQL/graphql?queryId=messengerMessages.5846eeb71c981f11e0134cb6626cc314&variables=(conversationUrn:${encodeLinkedinUrn(conversationUrn)})`,
   );
 

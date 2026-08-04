@@ -1,5 +1,6 @@
 export * from "./user";
 export * from "./company";
+export * from "./company-people";
 export * from "./posts";
 export * from "./search";
 export * from "./utils";
@@ -7,3 +8,4 @@ export * from "./config";
 export * from "./message";
 export * from "./types";
 export * from "./linkedin-sse";
+export * from "./errors";

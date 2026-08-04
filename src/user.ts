@@ -1,5 +1,5 @@
 import { getCompany } from "./company";
-import { fetchData } from "./config";
+import { fetchDataApi } from "./config";
 import {
   extractDataWithReferences,
   extractExperiences,
@@ -26,10 +26,40 @@ export interface MiniUserProfileLinkedin {
   backgroundPicture: string;
 }
 
+export const getMe = async (): Promise<MiniUserProfileLinkedin> => {
+  const response = await fetchDataApi("/me");
+
+  if ("included" in response) {
+    const profileData = response.included[0];
+
+    const profile = {
+      id_urn: profileData?.entityUrn.replace("urn:li:fsd_profile:", ""),
+      publicIdentifier: profileData?.publicIdentifier,
+      firstName: profileData?.firstName,
+      lastName: profileData?.lastName,
+      fullName: `${profileData?.firstName || ""} ${
+        profileData?.lastName || ""
+      }`,
+      headline: "N/A",
+      about: "N/A",
+      birthDate: {
+        month: profileData?.birthDateOn?.month || null,
+        day: profileData?.birthDateOn?.day || null,
+      },
+      profilePicture: `N/A`,
+      backgroundPicture: `N/A`,
+    };
+
+    return profile;
+  }
+
+  throw new Error("Profile not found");
+};
+
 export const getUserMiniProfile = async (
   identifier: string,
 ): Promise<MiniUserProfileLinkedin> => {
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?variables=(vanityName:${identifier})&queryId=voyagerIdentityDashProfiles.34ead06db82a2cc9a778fac97f69ad6a`,
   );
 
@@ -83,7 +113,7 @@ export const extractProfileIdLinkedin = async (profileUrl: string) => {
   const profileId = match ? match[1] : profileUrl;
 
   if (profileId) {
-    const response = await fetchData(
+    const response = await fetchDataApi(
       `graphql?variables=(vanityName:${profileId})&queryId=voyagerIdentityDashProfiles.34ead06db82a2cc9a778fac97f69ad6a`,
     );
 
@@ -104,7 +134,7 @@ export const extractProfileIdLinkedin = async (profileUrl: string) => {
 export const getProfileSectionAbout = async (identifier: string) => {
   const profileId = await extractProfileIdLinkedin(identifier);
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?variables=(profileUrn:urn%3Ali%3Afsd_profile%3A${profileId})&queryId=voyagerIdentityDashProfileCards.55af784c21dc8640b500ab5b45937064`,
   );
 
@@ -128,7 +158,7 @@ export const getProfissionalExperiences = async (identifier: string) => {
     throw new Error("Profile not found");
   }
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?variables=(profileUrn:urn%3Ali%3Afsd_profile%3A${profileId},sectionType:experience,locale:en_US)&queryId=voyagerIdentityDashProfileComponents.c5d4db426a0f8247b8ab7bc1d660775a`,
   );
 
@@ -155,7 +185,7 @@ export const getContactInfo = async (identifier: string) => {
     throw new Error("Profile not found");
   }
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?includeWebMetadata=true&variables=(memberIdentity:${identifier})&queryId=voyagerIdentityDashProfiles.c7452e58fa37646d09dae4920fc5b4b9`,
   );
 
@@ -194,7 +224,7 @@ export const getLinkedinSkills = async (identifier: string) => {
     throw new Error("Profile not found");
   }
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?includeWebMetadata=true&variables=(profileUrn:urn%3Ali%3Afsd_profile%3A${profileId},sectionType:skills,locale:pt_BR)&queryId=voyagerIdentityDashProfileComponents.c5d4db426a0f8247b8ab7bc1d660775a`,
   );
 
@@ -225,7 +255,7 @@ export const getLinkedinEducation = async (identifier: string) => {
     throw new Error("Profile not found");
   }
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?includeWebMetadata=true&variables=(profileUrn:urn%3Ali%3Afsd_profile%3A${profileId},sectionType:education,locale:pt_BR)&queryId=voyagerIdentityDashProfileComponents.c5d4db426a0f8247b8ab7bc1d660775a`,
   );
 
@@ -280,7 +310,7 @@ export const getLinkedinCertifications = async (identifier: string) => {
     throw new Error("Profile not found");
   }
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?includeWebMetadata=true&variables=(profileUrn:urn%3Ali%3Afsd_profile%3A${profileId},sectionType:certifications,locale:pt_BR)&queryId=voyagerIdentityDashProfileComponents.c5d4db426a0f8247b8ab7bc1d660775a`,
   );
 

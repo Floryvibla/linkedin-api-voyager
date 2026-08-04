@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { fetchData } from "./config";
+import { fetchDataApi } from "./config";
 import { assert, getIdFromUrn, getUrnFromRawUpdate } from "./utils";
 import {
   EntitySearchResult,
@@ -44,7 +44,7 @@ export const search = async ({
     `queryParameters:${params.filters},includeFiltersInResponse:false))` +
     `&queryId=voyagerSearchDashClusters.bb967969ef89137e6dec45d038310505`;
 
-  const res = await fetchData(uri);
+  const res = await fetchDataApi(uri);
 
   const dataClusters = res?.data?.data?.searchDashClustersByAll;
   if (!dataClusters) return response;

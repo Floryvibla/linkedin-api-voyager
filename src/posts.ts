@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { extractProfileIdLinkedin } from "./user";
-import { fetchData } from "./config";
+import { fetchDataApi } from "./config";
 import { extractFields } from "./utils";
 
 export const parseResponsePostLinkedin = (
@@ -43,7 +43,7 @@ export const getCommentsByPostUrl = async (
   const postID = url.match(/-(\d{10,})-/)?.[1];
   const postType = extractLinkedInPostType(url)?.type;
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `/graphql?queryId=voyagerSocialDashComments.afec6d88d7810d45548797a8dac4fb87&variables=(count:${limit},start:${start},numReplies:1,socialDetailUrn:urn%3Ali%3Afsd_socialDetail%3A%28urn%3Ali%3A${postType}%3A${postID}%2Curn%3Ali%3A${postType}%3A${postID}%2Curn%3Ali%3AhighlightedReply%3A-%29,sortOrder:RELEVANCE)`,
   );
 
@@ -112,7 +112,7 @@ export const getPostLinkedin = async (
 ) => {
   const slugPost = url.match(/\/posts\/([^\/?]+)/)?.[1];
 
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `/graphql?includeWebMetadata=false&queryId=voyagerFeedDashUpdates.5cf9b25c46b9d86c224647752f7d6bfd&variables=(commentsCount:${commentsCount},likesCount:${likesCount},includeCommentsFirstReply:true,includeReactions:false,moduleKey:feed-item%3Adesktop,slug:${slugPost})`,
   );
 
@@ -152,7 +152,7 @@ export const getUserPosts = async ({
   accumulatedPosts?: unknown[];
 }) => {
   const profileId = await extractProfileIdLinkedin(identifier);
-  const response = await fetchData(
+  const response = await fetchDataApi(
     `graphql?variables=(profileUrn:urn%3Ali%3Afsd_profile%3A${profileId},count:${count},start:${start})&queryId=voyagerFeedDashProfileUpdates.4af00b28d60ed0f1488018948daad822`,
   );
 

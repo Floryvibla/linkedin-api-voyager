@@ -741,6 +741,19 @@ export type ISearchPeopleParams = Omit<ISearchParams, "filters"> & {
 
 export type SearchCompaniesParams = Omit<ISearchParams, "filters">;
 
+export type ISearchCompanyPeopleParams = {
+  companySlug?: string;
+  companyId?: string;
+  query?: string;
+  offset?: number;
+  limit?: number;
+  includePrivateProfiles?: boolean;
+  pastCompany?: boolean;
+  regions?: string[];
+  schools?: string[];
+  keywordTitle?: string;
+};
+
 export interface ProfileSearchResult {
   urnId: string;
   name: string;
