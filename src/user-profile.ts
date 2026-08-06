@@ -1,14 +1,11 @@
 import { fetchDataApi } from "./config";
 import {
   extractProfileIdLinkedin,
-  getProfileSectionAboutById,
   resolveProfileEntityUrn,
-} from "./user-resolvers";
-import {
-  findProfileEntry,
-  mapMiniProfile,
-  MiniUserProfileLinkedin,
-} from "./user-parsers";
+} from "./user-loader";
+import { getProfileSectionAboutById } from "./user-about-contact";
+import { findProfileEntry, mapMiniProfile } from "./user-entry-parsers";
+import { MiniUserProfileLinkedin } from "./user-types";
 
 const PROFILE_DECORATION_FULL =
   "com.linkedin.voyager.dash.deco.identity.profile.FullProfileWithEntities-93";

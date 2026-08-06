@@ -1,51 +1,10 @@
-import { getNestedValue } from "./utils";
+import { PROFILE_TYPE, MiniUserProfileLinkedin } from "./user-types";
+import { buildImageUrl, extractText } from "./user-core-parsers";
 
-export interface MiniUserProfileLinkedin {
-  id_urn: string;
-  publicIdentifier: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  headline: string;
-  about: string;
-  birthDate: { month: number; day: number };
-  profilePicture: string | null;
-  backgroundPicture: string | null;
-}
-
-const PROFILE_TYPE = "com.linkedin.voyager.dash.identity.profile.Profile";
-const VECTOR_IMAGE_PATHS = [
-  "displayImageReferenceResolutionResult.vectorImage",
-  "displayImageResolutionResult.vectorImage",
-  "vectorImage",
-];
-const TEXT_KEYS = ["text", "plainText", "accessibilityText"];
-
-const extractText = (field: any): string => {
-  if (!field) return "";
-  if (typeof field === "string") return field;
-  for (const k of TEXT_KEYS)
-    if (typeof field?.[k] === "string") return field[k];
-  for (const v of Object.values(field || {}))
-    if (typeof v === "string" && v.trim()) return v;
-  return "";
-};
-
-const buildImageUrl = (container: any): string | null => {
-  const rootUrl = container?.displayImageReference?.vectorImage?.rootUrl;
-  const artifact =
-    container?.displayImageReference?.vectorImage?.artifacts.find(
-      (a: any) => a?.width === 800,
-    );
-
-  const imageUrl = `${rootUrl}${artifact?.fileIdentifyingUrlPathSegment}`;
-
-  if (!rootUrl || !artifact) return null;
-
-  return imageUrl;
-};
-
-export const findProfileEntry = (raw: any, vanityName?: string): any | null => {
+export const findProfileEntry = (
+  raw: any,
+  vanityName?: string,
+): any | null => {
   const included: any[] = Array.isArray(raw?.included) ? raw.included : [];
   const dataElements: any[] = Array.isArray(raw?.data?.elements)
     ? raw.data.elements
@@ -65,17 +24,25 @@ export const findProfileEntry = (raw: any, vanityName?: string): any | null => {
     } else if (rootRef?.$type || rootRef?.publicIdentifier) return rootRef;
   }
   const firstDashElement = dataElements.find(
-    (e) => typeof e?.entityUrn === "string" && /fsd_profile:/.test(e.entityUrn),
+    (e) =>
+      typeof e?.entityUrn === "string" && /fsd_profile:/.test(e.entityUrn),
   );
   return firstDashElement ?? dash[0] ?? included[0] ?? null;
+};
+
+export const getStarredCollectionUrn = (
+  raw: any,
+  key: string,
+): string | null => {
+  const direct = raw?.[key] ?? raw?.[`*${key}`];
+  if (typeof direct === "string") return direct;
+  return direct?.entityUrn ?? null;
 };
 
 export const mapMiniProfile = (
   profile: any,
 ): MiniUserProfileLinkedin | null => {
   if (!profile) return null;
-  // console.log("profile: ", JSON.stringify(profile, null, 2));
-
   const urn = profile.entityUrn ?? "";
   const firstName = profile.firstName ?? "";
   const lastName = profile.lastName ?? "";
