@@ -1,4 +1,8 @@
 import axios, { AxiosInstance } from "axios";
+import {
+  LinkedInAuthRedirectError,
+  LinkedInUnexpectedHtmlError,
+} from "./errors";
 
 export const API_BASE_URL = "https://www.linkedin.com";
 
@@ -10,8 +14,9 @@ export const Client = (providedCookies: {
 }) => {
   apiInstance = axios.create({
     baseURL: API_BASE_URL,
-    maxRedirects: 3, // Limitar redirecionamentos a 3
-    timeout: 10000,
+    maxRedirects: 0,
+    timeout: 15000,
+    validateStatus: (status) => status >= 200 && status < 400,
     headers: {
       "accept-language":
         "pt-BR,pt;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5",
@@ -48,6 +53,20 @@ export const fetchDataApi = async (
   const response = await apiInstance.get(`/voyager/api${endpoint}`, {
     headers: options?.headers,
   });
+  if (response.status >= 300) {
+    throw new LinkedInAuthRedirectError({
+      status: response.status,
+      location: (response.headers?.location as string) ?? null,
+    });
+  }
+  if (typeof response.data === "string") {
+    if (/<(!DOCTYPE|html)/i.test(response.data.trim())) {
+      throw new LinkedInUnexpectedHtmlError({
+        length: response.data.length,
+        location: (response.headers?.location as string) ?? null,
+      });
+    }
+  }
   return response.data;
 };
 

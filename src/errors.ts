@@ -20,3 +20,19 @@ export class LinkedInAuthRedirectError extends Error {
     this.location = input.location;
   }
 }
+
+export class LinkedInUnexpectedHtmlError extends Error {
+  public readonly length: number;
+  public readonly location: string | null;
+
+  constructor(input: { length: number; location: string | null }) {
+    super(
+      `LinkedIn returned an HTML page (${input.length} bytes) instead of JSON. Session cookies are probably expired or invalid.${
+        input.location ? ` Redirect target: ${input.location}` : ""
+      }`,
+    );
+    this.name = "LinkedInUnexpectedHtmlError";
+    this.length = input.length;
+    this.location = input.location;
+  }
+}
