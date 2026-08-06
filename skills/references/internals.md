@@ -4,6 +4,8 @@ Leia este arquivo quando precisar: chamar um endpoint Voyager que a lib ainda n�
 
 ## Config
 
+Localização: `src/core/config.ts`
+
 ```typescript
 import {
   Client,
@@ -27,6 +29,8 @@ import {
   redirecionamento do LinkedIn (ex: links curtos).
 
 ## Erros (`errors.ts`)
+
+Localização: `src/core/errors.ts`
 
 ```typescript
 import {
@@ -53,6 +57,8 @@ try {
 ```
 
 ## Utilitários (`utils.ts`)
+
+Localização: `src/core/utils.ts`
 
 Helpers de parsing/normalização usados internamente por todos os outros módulos. Reaproveite-os
 quando estiver consumindo respostas cruas do Voyager via `fetchDataApi` diretamente.
@@ -112,8 +118,8 @@ Lista completa das funções exportadas por `utils.ts` (use quando o padrão aci
 `resolveImageUrl`, `resolveLinkedVectorImageUrl`, `stringifyLinkedInDate`,
 `normalizeRawOrganization`.
 
-## Tipos de imagem (`types.ts`)
+## Tipos de imagem
 
-`VectorImage`, `Artifact`, `LinkedVectorImage`, `LinkedMediaProcessorImage`, `ImageViewModel` —
-formatos crus de imagem do LinkedIn; os helpers `resolveImageUrl`/`resolveLinkedVectorImageUrl`
-acima já convertem esses formatos em uma URL string simples.
+Os tipos de imagem compartilhados ficam em `src/core/types.ts`. Os tipos por domínio ficam em `src/modules/<dominio>/types.ts` (ex: `src/modules/user/types.ts`).
+
+`VectorImage`, `Artifact`, `LinkedVectorImage`, `LinkedMediaProcessorImage`, `ImageViewModel` — formatos crus de imagem do LinkedIn; os helpers `resolveImageUrl`/`resolveLinkedVectorImageUrl` acima já convertem esses formatos em uma URL string simples.

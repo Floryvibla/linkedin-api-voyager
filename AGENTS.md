@@ -38,7 +38,7 @@ O pacote publicado no npm é `@florydev/linkedin-api-voyager`. A saída publicad
 
 ### 1. Núcleo HTTP
 
-Arquivo central: `src/config.ts`
+Arquivo central: `src/core/config.ts`
 
 - `Client()` cria a instância global `apiInstance`.
 - `fetchDataApi()` faz `GET` em `/voyager/api${endpoint}`.
@@ -46,22 +46,23 @@ Arquivo central: `src/config.ts`
 
 Sem `Client()`, o resto da lib quebra.
 
+O diretório `src/core/` contém também `errors.ts` (classes de erro), `utils.ts` (parsers compartilhados) e `types.ts` (tipos compartilhados globais).
+
 ### 2. Camada de domínio
 
-Cada módulo encapsula uma parte do LinkedIn:
+Cada módulo em `src/modules/<nome>/` encapsula uma parte do LinkedIn, com seu próprio `types.ts` e `index.ts` barrel:
 
-- `src/user.ts` -> perfis, about, experiências, contato, skills, educação, certificações
-- `src/company.ts` -> empresa por slug
-- `src/company-people.ts` -> busca funcionários/ex-funcionários de empresa
-- `src/search.ts` -> busca geral e busca de pessoas
-- `src/posts.ts` -> post, posts de usuário, comentários
-- `src/message.ts` -> inbox e mensagens
-- `src/newtwork.ts` -> convites recebidos/enviados
-- `src/linkedin-sse.ts` -> realtime/SSE
+- `src/modules/user/` -> perfis, about, experiências, contato, skills, educação, certificações, projetos, voluntariado, honras, cursos, organizações, publicações, patentes, testes/scores, idiomas, recomendações
+- `src/modules/company/` -> empresa por slug + busca funcionários/ex-funcionários
+- `src/modules/posts/` -> post, posts de usuário, comentários
+- `src/modules/search/` -> busca geral e busca de pessoas
+- `src/modules/messages/` -> inbox e mensagens
+- `src/modules/network/` -> convites recebidos/enviados
+- `src/modules/sse/` -> realtime/SSE
 
 ### 3. Parsing e normalização
 
-Arquivo crítico: `src/utils.ts`
+Arquivo crítico: `src/core/utils.ts`
 
 Este arquivo existe porque o LinkedIn devolve muitos dados em formato normalizado:
 
@@ -74,15 +75,18 @@ Helpers como `resolveReferences`, `extractDataWithReferences`, `extractFields`, 
 
 ### 4. Tipagem
 
-Arquivo: `src/types.ts`
+Não há mais um `types.ts` monolítico. A tipagem é distribuída:
 
-Concentra tipos crus do Voyager e tipos normalizados usados pela lib. Se um endpoint novo entrar, o lugar certo para consolidar contratos é aqui.
+- `src/core/types.ts` -> tipos compartilhados globais (Paging, URNs de imagem, etc)
+- `src/modules/<dominio>/types.ts` -> tipos específicos do domínio
+
+Se um endpoint novo entrar, coloque os tipos no `types.ts` do módulo correspondente. Se for compartilhado, coloque em `core/types.ts`.
 
 ### 5. Superfície pública
 
 Arquivo: `src/index.ts`
 
-Tudo que o pacote expõe publicamente precisa ser reexportado aqui.
+Tudo que o pacote expõe publicamente precisa ser reexportado aqui. O barrel agregador reexporta de cada `src/modules/<nome>/index.ts`.
 
 ## Estrutura do repositório
 
@@ -97,20 +101,46 @@ Tudo que o pacote expõe publicamente precisa ser reexportado aqui.
 
 ### `src/`
 
-- `config.ts` -> cliente HTTP, headers, cookies, fetch helpers
-- `errors.ts` -> classes de erro
-- `index.ts` -> barrel de exports
-- `types.ts` -> contratos TypeScript
-- `utils.ts` -> parsing, URNs, imagens, normalização
-- `user.ts` -> APIs de perfil
-- `company.ts` -> API de empresa
-- `company-people.ts` -> busca de pessoas por empresa
-- `search.ts` -> busca geral e pessoas
-- `posts.ts` -> posts e comentários
-- `message.ts` -> inbox e mensagens
-- `newtwork.ts` -> convites de rede; o nome do arquivo está com typo histórico
-- `linkedin-sse.ts` -> streaming de eventos em tempo real
-- `teste.ts` -> script local/manual; não usar como base de produção
+```
+src/
+├── index.ts                # barrel principal / exports públicos
+├── teste.ts                # playground local (ignorado no git)
+├── core/                   # compartilhado (não pertence a nenhum domínio)
+│   ├── config.ts           # cliente HTTP, headers, cookies, fetch helpers
+│   ├── errors.ts           # classes de erro
+│   ├── utils.ts            # parsing, URNs, imagens, normalização
+│   └── types.ts            # tipos compartilhados globais
+└── modules/                # camada de domínio por assunto
+    ├── user/               # APIs de perfil (15+ arquivos)
+    │   ├── index.ts
+    │   ├── types.ts
+    │   └── user-*.ts
+    ├── company/            # empresa + pessoas por empresa
+    │   ├── index.ts
+    │   ├── types.ts
+    │   ├── company.ts
+    │   └── company-people.ts
+    ├── posts/              # posts e comentários
+    │   ├── index.ts
+    │   ├── types.ts
+    │   └── posts.ts
+    ├── search/             # busca geral e pessoas
+    │   ├── index.ts
+    │   ├── types.ts
+    │   └── search.ts
+    ├── messages/           # inbox e mensagens
+    │   ├── index.ts
+    │   ├── types.ts
+    │   └── message.ts
+    ├── network/            # convites de rede (nome corrigido do "newtwork" histórico)
+    │   ├── index.ts
+    │   ├── types.ts
+    │   └── network.ts
+    └── sse/                # streaming de eventos em tempo real
+        ├── index.ts
+        ├── types.ts
+        └── linkedin-sse.ts
+```
 
 ### `skills/`
 
@@ -150,24 +180,24 @@ Observação importante: `worker-service` está ignorado no `.gitignore` da raiz
 
 ## Onde achar os endpoints do Voyager neste repo
 
-Comece por `src/config.ts`: toda chamada passa por `/voyager/api`.
+Comece por `src/core/config.ts`: toda chamada passa por `/voyager/api`.
 
 Mapa prático:
 
-- Perfil próprio: `src/user.ts` -> `/me`
-- Perfil por vanity name: `src/user.ts` -> `graphql?...queryId=voyagerIdentityDashProfiles...`
-- About / cards do perfil: `src/user.ts` -> `voyagerIdentityDashProfileCards...`
-- Experiências / skills / education / certifications: `src/user.ts` -> `voyagerIdentityDashProfileComponents...`
-- Empresa por slug: `src/company.ts` -> `/organization/companies?...q=universalName`
-- Pessoas da empresa: `src/company-people.ts` -> `voyagerSearchDashClusters...`
-- Busca geral e pessoas: `src/search.ts` -> `voyagerSearchDashClusters...`
-- Comentários: `src/posts.ts` -> `voyagerSocialDashComments...`
-- Post por slug: `src/posts.ts` -> `voyagerFeedDashUpdates...`
-- Posts do usuário: `src/posts.ts` -> `voyagerFeedDashProfileUpdates...`
-- Inbox: `src/message.ts` -> `/voyagerMessagingGraphQL/graphql?queryId=messengerConversations...`
-- Mensagens: `src/message.ts` -> `/voyagerMessagingGraphQL/graphql?queryId=messengerMessages...`
-- Convites: `src/newtwork.ts` -> `/relationships/invitationViews`
-- Realtime: `src/linkedin-sse.ts` -> `https://www.linkedin.com/realtime/connect?rc=1`
+- Perfil próprio: `src/modules/user/` -> `/me`
+- Perfil por vanity name: `src/modules/user/` -> `graphql?...queryId=voyagerIdentityDashProfiles...`
+- About / cards do perfil: `src/modules/user/` -> `voyagerIdentityDashProfileCards...`
+- Experiências / skills / education / certifications: `src/modules/user/` -> `voyagerIdentityDashProfileComponents...`
+- Empresa por slug: `src/modules/company/company.ts` -> `/organization/companies?...q=universalName`
+- Pessoas da empresa: `src/modules/company/company-people.ts` -> `voyagerSearchDashClusters...`
+- Busca geral e pessoas: `src/modules/search/` -> `voyagerSearchDashClusters...`
+- Comentários: `src/modules/posts/` -> `voyagerSocialDashComments...`
+- Post por slug: `src/modules/posts/` -> `voyagerFeedDashUpdates...`
+- Posts do usuário: `src/modules/posts/` -> `voyagerFeedDashProfileUpdates...`
+- Inbox: `src/modules/messages/` -> `/voyagerMessagingGraphQL/graphql?queryId=messengerConversations...`
+- Mensagens: `src/modules/messages/` -> `/voyagerMessagingGraphQL/graphql?queryId=messengerMessages...`
+- Convites: `src/modules/network/` -> `/relationships/invitationViews`
+- Realtime: `src/modules/sse/` -> `https://www.linkedin.com/realtime/connect?rc=1`
 
 Para descobrir endpoints novos, procure por:
 
@@ -182,14 +212,14 @@ Para descobrir endpoints novos, procure por:
 
 ### Fluxo recomendado
 
-1. Identifique o domínio certo (`user`, `company`, `posts`, `message`, etc.).
+1. Identifique o domínio certo (`user`, `company`, `posts`, `message`, etc.) em `src/modules/<dominio>/`.
 2. Localize o endpoint real do LinkedIn.
-3. Faça primeiro uma versão crua com `fetchDataApi()`.
+3. Faça primeiro uma versão crua com `fetchDataApi()` de `src/core/config.ts`.
 4. Inspecione `included`, `*entityResult`, URNs e imagens.
-5. Extraia helpers reutilizáveis para `utils.ts` se houver padrão repetido.
-6. Crie ou refine tipos em `types.ts`.
+5. Extraia helpers reutilizáveis para `src/core/utils.ts` se houver padrão repetido.
+6. Crie ou refine tipos no `src/modules/<dominio>/types.ts` (ou `src/core/types.ts` se for compartilhado).
 7. Exponha função de alto nível no módulo correto.
-8. Reexporte em `src/index.ts`.
+8. Reexporte no `src/modules/<dominio>/index.ts` e depois no `src/index.ts`.
 9. Documente no `README.md` e no arquivo adequado em `skills/references/`.
 
 ### Padrões do repo que devem ser preservados
@@ -267,9 +297,9 @@ Fluxo atual:
 Antes de encerrar qualquer tarefa neste repo, confirme:
 
 - código alterado em `src/`, não em `lib/`
-- export público atualizado em `src/index.ts`
-- tipos adicionados/ajustados em `src/types.ts` quando necessário
-- parsing reutilizável extraído para `src/utils.ts` quando faz sentido
+- export público atualizado em `src/index.ts` (e no `src/modules/<dominio>/index.ts` correspondente)
+- tipos adicionados/ajustados no `src/modules/<dominio>/types.ts` (ou `core/types.ts` se compartilhado)
+- parsing reutilizável extraído para `src/core/utils.ts` quando faz sentido
 - docs sincronizadas em `README.md` e `skills/references/*.md`
 - nenhum secret foi introduzido
 
@@ -277,9 +307,10 @@ Antes de encerrar qualquer tarefa neste repo, confirme:
 
 - Contexto geral -> `README.md`
 - API pública -> `src/index.ts`
-- Cliente HTTP -> `src/config.ts`
-- Parsers -> `src/utils.ts`
-- Tipos -> `src/types.ts`
+- Cliente HTTP -> `src/core/config.ts`
+- Parsers -> `src/core/utils.ts`
+- Tipos compartilhados -> `src/core/types.ts`
+- Tipos de um domínio -> `src/modules/<dominio>/types.ts`
 - Como usar perfis -> `skills/references/profiles.md`
 - Como usar empresas -> `skills/references/companies.md`
 - Como usar busca/mensagens/rede -> `skills/references/search-network.md`

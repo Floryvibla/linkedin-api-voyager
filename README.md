@@ -422,18 +422,40 @@ yarn dev
 
 ### Estrutura principal
 
-- `src/config.ts` -> cliente HTTP e helpers base
-- `src/user.ts` -> perfis
-- `src/company.ts` -> empresas
-- `src/company-people.ts` -> pessoas por empresa
-- `src/search.ts` -> busca
-- `src/posts.ts` -> posts e comentários
-- `src/message.ts` -> inbox e mensagens
-- `src/newtwork.ts` -> convites
-- `src/linkedin-sse.ts` -> realtime
-- `src/utils.ts` -> parsing e normalização
-- `src/types.ts` -> contratos TypeScript
-- `src/index.ts` -> exports públicos
+A lib está organizada em módulos por domínio, cada um com seus próprios tipos:
+
+```
+src/
+├── index.ts                # barrel principal / exports públicos
+├── core/                   # código compartilhado entre todos os módulos
+│   ├── config.ts           # cliente HTTP e helpers base (fetchDataApi, etc)
+│   ├── errors.ts           # classes de erro
+│   ├── utils.ts            # parsing e normalização (URNs, imagens, references)
+│   └── types.ts            # tipos compartilhados globais
+└── modules/                # camada de domínio, um módulo por assunto
+    ├── user/               # perfis, seções, about, contact, recommendations
+    │   ├── types.ts
+    │   └── (vários arquivos de implementação)
+    ├── company/            # empresas + pessoas por empresa
+    │   ├── types.ts
+    │   ├── company.ts
+    │   └── company-people.ts
+    ├── posts/              # posts e comentários
+    │   ├── types.ts
+    │   └── posts.ts
+    ├── search/             # busca geral e busca de pessoas
+    │   ├── types.ts
+    │   └── search.ts
+    ├── messages/           # inbox e mensagens
+    │   ├── types.ts
+    │   └── message.ts
+    ├── network/            # convites de conexão (antigo "newtwork")
+    │   ├── types.ts
+    │   └── network.ts
+    └── sse/                # eventos em tempo real
+        ├── types.ts
+        └── linkedin-sse.ts
+```
 
 ### Worker auxiliar
 
