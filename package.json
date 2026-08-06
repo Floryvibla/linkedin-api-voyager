@@ -37,9 +37,9 @@
     "prepare": "npm run build",
     "dev": "nodemon src/teste.ts",
     "prepublishOnly": "npm run build",
-    "release:patch": "npm version patch --no-git-tag-version && npm publish --access public",
-    "release:minor": "npm version minor --no-git-tag-version && npm publish --access public",
-    "release:major": "npm version major --no-git-tag-version && npm publish --access public"
+    "release:patch": "npm version patch && npm publish --access public",
+    "release:minor": "npm version minor && npm publish --access public",
+    "release:major": "npm version major && npm publish --access public"
   },
   "devDependencies": {
     "@types/node": "^22.13.1",
