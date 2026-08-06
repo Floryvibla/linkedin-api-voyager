@@ -1,4 +1,4 @@
-import { fetchDataApi } from "./config";
+import { fetchDataApi } from "../../core/config";
 import {
   resolveProfileEntityUrn,
   SECTIONS_QUERY_ID,

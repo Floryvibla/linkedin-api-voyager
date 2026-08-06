@@ -1,4 +1,4 @@
-import { fetchDataApi } from "./config";
+import { fetchDataApi } from "../../core/config";
 
 export const receivedInvitation = async (
   { start, count }: { start: number; count: number } = {

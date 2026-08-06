@@ -1,0 +1,10 @@
+node_modules
+worker-service
+.env
+*.test.ts
+src/teste.ts
+lib
+package-lock.json
+linkedin_cookies.json
+pnpm-lock.yaml
+yarn.lock

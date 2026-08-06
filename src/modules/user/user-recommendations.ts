@@ -1,4 +1,4 @@
-import { fetchDataApi } from "./config";
+import { fetchDataApi } from "../../core/config";
 import {
   extractProfileIdLinkedin,
   RECOMMENDATIONS_QUERY_ID,

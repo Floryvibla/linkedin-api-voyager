@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { fetchDataApi } from "./config";
+import { fetchDataApi } from "../../core/config";
 import {
   EntitySearchResult,
   ISearchCompanyPeopleParams,
   ISearchPeopleResponse,
   ProfileSearchResult,
 } from "./types";
-import { assert, extractDataWithReferences, getIdFromUrn } from "./utils";
+import { assert, extractDataWithReferences, getIdFromUrn } from "../../core/utils";
 
 const MINI_COMPANY_DECORATION =
   "com.linkedin.voyager.dash.deco.organization.MiniCompany-10";

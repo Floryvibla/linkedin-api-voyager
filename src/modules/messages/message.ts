@@ -1,7 +1,7 @@
-import { fetchDataApi } from "./config";
+import { fetchDataApi } from "../../core/config";
 import { LinkedInMessage } from "./types";
-import { extractProfileIdLinkedin } from "./user";
-import { encodeLinkedinUrn } from "./utils";
+import { extractProfileIdLinkedin } from "../user";
+import { encodeLinkedinUrn } from "../../core/utils";
 
 const DEFAULT_INBOX_QUERY_ID =
   "messengerConversations.0d5e6781bbee71c3e51c8843c6519f48";

@@ -1,5 +1,5 @@
 import { TEXT_KEYS, VECTOR_IMAGE_PATHS } from "./user-types";
-import { getNestedValue } from "./utils";
+import { getNestedValue } from "../../core/utils";
 
 export const extractText = (field: any): string => {
   if (!field) return "";

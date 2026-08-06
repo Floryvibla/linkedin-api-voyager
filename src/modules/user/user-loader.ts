@@ -1,4 +1,4 @@
-import { fetchDataApi } from "./config";
+import { fetchDataApi } from "../../core/config";
 import { findProfileEntry } from "./user-entry-parsers";
 
 const PROFILE_DECORATION_TOP =

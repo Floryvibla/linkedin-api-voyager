@@ -1,4 +1,4 @@
-import { apiInstance } from "./config";
+import { apiInstance } from "../../core/config";
 
 export enum LinkedInRealtimeTopic {
   ConversationsBroadcast = "conversationsBroadcastTopic",

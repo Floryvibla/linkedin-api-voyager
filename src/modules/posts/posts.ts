@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { extractProfileIdLinkedin } from "./user";
-import { fetchDataApi } from "./config";
-import { extractFields } from "./utils";
+import { extractProfileIdLinkedin } from "../user";
+import { fetchDataApi } from "../../core/config";
+import { extractFields } from "../../core/utils";
 
 export const parseResponsePostLinkedin = (
   response: any,

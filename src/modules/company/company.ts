@@ -1,5 +1,5 @@
-import { fetchDataApi } from "./config";
-import { extractDataWithReferences, extractFields } from "./utils";
+import { fetchDataApi } from "../../core/config";
+import { extractDataWithReferences, extractFields } from "../../core/utils";
 
 const FIELDS_MAP = {
   id: "entityUrn",

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { fetchDataApi } from "./config";
-import { assert, getIdFromUrn, getUrnFromRawUpdate } from "./utils";
+import { fetchDataApi } from "../../core/config";
+import { assert, getIdFromUrn, getUrnFromRawUpdate } from "../../core/utils";
 import {
   EntitySearchResult,
   ISearchParams,
