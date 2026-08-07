@@ -1,27 +1,23 @@
 import { fetchDataApi } from "../../core/config";
+import type { NetworkPaginationArgs } from "./types";
 
 export const receivedInvitation = async (
-  { start, count }: { start: number; count: number } = {
-    start: 0,
-    count: 3,
-  },
-) => {
-  const response = await fetchDataApi(
-    `/relationships/invitationViews?q=receivedInvitation&includeInsights=true&start=${start}&count=${count}`,
+  { start, count }: NetworkPaginationArgs = { start: 0, count: 3 },
+) =>
+  fetchDataApi(
+    `/relationships/invitationViews?q=receivedInvitation&includeInsights=true&start=${start ?? 0}&count=${count ?? 3}`,
   );
-
-  return response;
-};
 
 export const sentInvitation = async (
-  { start, count }: { start: number; count: number } = {
-    start: 0,
-    count: 3,
-  },
-) => {
-  const response = await fetchDataApi(
-    `/relationships/invitationViews?q=sentInvitation&includeInsights=true&start=${start}&count=${count}`,
+  { start, count }: NetworkPaginationArgs = { start: 0, count: 3 },
+) =>
+  fetchDataApi(
+    `/relationships/invitationViews?q=sentInvitation&includeInsights=true&start=${start ?? 0}&count=${count ?? 3}`,
   );
 
-  return response;
-};
+export const getMyConnections = async (
+  { start, count }: NetworkPaginationArgs = { start: 0, count: 10 },
+) =>
+  fetchDataApi(
+    `/relationships/connections?start=${start ?? 0}&count=${count ?? 10}`,
+  );

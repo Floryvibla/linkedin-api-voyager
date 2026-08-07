@@ -118,6 +118,66 @@ Lista completa das funções exportadas por `utils.ts` (use quando o padrão aci
 `resolveImageUrl`, `resolveLinkedVectorImageUrl`, `stringifyLinkedInDate`,
 `normalizeRawOrganization`.
 
+## SDUI helper (sdui.ts)
+
+Localização: `src/core/sdui.ts`
+
+Usado para **mutations flagship-web RSC** 2025/2026 do LinkedIn (não são mais endpoints Voyager tradicionais): enviar/cancelar convite, seguir/desseguir, remover conexão. Tudo passa por `POST /flagship-web/rsc-action/actions/server-request`.
+
+```typescript
+import {
+  postSduiAction,
+  DEFAULT_ANCHOR_PAGE_KEY,
+  DEFAULT_SCREEN_ID,
+  SDUI_BASE_PATH,
+} from "@florydev/linkedin-api-voyager/src/core/sdui";
+
+await postSduiAction({
+  sduiid: "com.linkedin.sdui.requests.mynetwork.addaUpdateFollowState",
+  payload: {
+    followStateType: "FollowStateType_FOLLOW_ACTIVE",
+    memberUrn: { memberId: "1361766591" },  // sempre NUMÉRICO LEGADO, não ACoA
+    followStateBinding: {
+      key: "urn:li:fsd_followingState:urn:li:member:1361766591",
+      namespace: null,
+    },
+    postActionSentConfigs: [],
+  },
+  anchorPageKey: "d_flagship3_profile_view_base",   // ou d_flagship3_people
+  screenId: "com.linkedin.sdui.flagshipnav.profile.Profile", // ou ...mynetwork.Grow
+  refererUrl: "https://www.linkedin.com/in/fulano/",
+});
+```
+
+### Estrutura do envelope (válida 2026, construída internamente)
+
+- `query`: sempre `sduiid=<id>` + `_v=0.2.6676` (fixo), opcionalmente `parentSpanId=<base64>`
+- `requestId` = `sduiid` (**NÃO** UUID aleatório)
+- `onClientRequestFailureAction` fica **DENTRO** de `serverRequest` com valor `{ actions: [] }` (não existe `failureType` no nível raiz)
+- `isApfcEnabled`, `isStreaming`, `rumPageKey` ficam **SOMENTE** dentro de `serverRequest`
+- Existe um `requestedArguments` **DUPLICADO** no nível raiz (contém `screenId`, `knownTemplateIds`, `states`) que não existe dentro de `serverRequest`
+
+### Headers SDUI obrigatórios (injetados automaticamente)
+
+- `Content-Type: application/json`
+- `x-li-rsc-stream: true`
+- `x-li-application-version: 0.2.6676`
+- `x-li-page-instance-tracking-id: <base64 16 bytes>` (gerado aleatoriamente por request)
+- `x-li-application-instance: "undefined"` (ou UUID real quando houver)
+- `x-li-anchor-page-key: d_flagship3_profile_view_base | d_flagship3_people`
+- `x-li-page-instance: urn:li:page:<anchor>;<tracking_id>` (concatenação dos dois acima)
+- `x-li-track: { clientVersion:"0.2.6676", mpName:"web", mpVersion:"0.2.6676", osName:"web", ... }`
+  - **Importante**: `mpName` é `"web"` em 2026, não mais `"voyager-web"` antigo
+
+### Sduiids conhecidos
+
+| sduiid | Ação |
+|---|---|
+| `com.linkedin.sdui.requests.mynetwork.addaAddConnection` | Enviar convite |
+| `com.linkedin.sdui.requests.mynetwork.addaWithdrawInvitation` | Retirar convite enviado |
+| `com.linkedin.sdui.requests.mynetwork.addaUpdateFollowState` | Seguir / deixar de seguir |
+| `com.linkedin.sdui.requests.mynetwork.RemoveConnectionVanityName` | Remover conexão estabelecida |
+
 ## Tipos de imagem
 
 Os tipos de imagem compartilhados ficam em `src/core/types.ts`. Os tipos por domínio ficam em `src/modules/<dominio>/types.ts` (ex: `src/modules/user/types.ts`).

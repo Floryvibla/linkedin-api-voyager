@@ -306,16 +306,58 @@ O retorno já trata mídia como:
 - `FILE`
 - `AUDIO`
 
-## Convites de conexão
+## Convites, conexões e rede
+
+> Todas as funções abaixo aceitam **`vanityName`** (o identificador público de `/in/fulano` ou a URL completa) como entrada. `memberId` (o `ACoA...` interno) é sempre opcional e resolvido automaticamente quando não fornecido.
 
 ```ts
 import {
   receivedInvitation,
   sentInvitation,
+  getMyConnections,
+  sendConnectionRequest,
+  cancelSentInvitation,
+  removeConnection,
+  followProfile,
+  unfollowProfile,
+  getProfileConnections,
+  getProfileFollowers,
+  getProfileFollowing,
 } from "@florydev/linkedin-api-voyager";
 
 const received = await receivedInvitation({ start: 0, count: 10 });
 const sent = await sentInvitation({ start: 0, count: 10 });
+
+// Minhas conexões (Voyager /relationships/connections)
+const myConnections = await getMyConnections({ start: 0, count: 20 });
+
+// Enviar convite de conexão (SDUI flagship) — só precisa do identifier
+await sendConnectionRequest({
+  vanityName: "ana-silva",                         // OU "https://www.linkedin.com/in/ana-silva/"
+  message: "Olá Ana, gostaria de nos conectar!",   // opcional
+});
+// Campos opcionais que você pode sobrescrever: firstName, lastName, inviteeMemberId (ACoA...),
+// legacyNumericMemberId (ID numérico legado, ex: "876631041"), trackingId, profileCanonicalUrl
+
+// Cancelar/retirar convite enviado (invitationId vem de sentInvitation -> invitationUrn)
+await cancelSentInvitation({
+  invitationId: "7123456789012345678",
+  inviteeVanityName: "ana-silva",                   // memberId opcional
+});
+
+// Remover conexão existente
+await removeConnection({ vanityName: "ana-silva" });
+
+// Seguir / deixar de seguir
+await followProfile({ vanityName: "ana-silva" });
+await unfollowProfile({ vanityName: "ana-silva" });
+
+// Listar conexões / seguidores / seguindo de um perfil 3º
+// Recebe vanity name (identifier) OU memberId (ACoA...) — auto-detectado
+const identifier = "williamhgates";                 // ou "ACoAABy..."
+const profileConnections = await getProfileConnections(identifier, { start: 0, count: 20 });
+const profileFollowers = await getProfileFollowers(identifier, { count: 10 });
+const profileFollowing = await getProfileFollowing(identifier, { count: 10 });
 ```
 
 ## Tempo real com SSE
@@ -387,6 +429,23 @@ Usa o prefixo `/voyager/api` e faz chamadas GET para endpoints internos do Linke
 
 Usado para inspecionar redirects sem seguir automaticamente a resposta.
 
+### `postSduiAction()`
+
+Helper em `src/core/sdui.ts` para ações SDUI flagship-web 2025/2026 (mutations: enviar/cancelar convite, seguir, remover conexão). Faz `POST /flagship-web/rsc-action/actions/server-request` com envelope completo, headers SDUI obrigatórios (`x-li-page-instance`, `x-li-page-instance-tracking-id`, `x-li-application-instance`, `x-li-anchor-page-key`, `x-li-track mpName=web`, `x-li-rsc-stream: true`) e `_v=0.2.6676` fixo.
+
+Exemplo:
+```ts
+import { postSduiAction } from "@florydev/linkedin-api-voyager/src/core/sdui";
+
+await postSduiAction({
+  sduiid: "com.linkedin.sdui.requests.mynetwork.addaUpdateFollowState",
+  payload: { followStateType: "FollowStateType_FOLLOW_ACTIVE", memberUrn: { memberId: "1361766591" }, ... },
+  anchorPageKey: "d_flagship3_profile_view_base",       // ou d_flagship3_people
+  screenId: "com.linkedin.sdui.flagshipnav.profile.Profile", // ou ...mynetwork.Grow
+  refererUrl: "https://www.linkedin.com/in/fulano/",
+});
+```
+
 ## Erros
 
 O projeto exporta:
@@ -449,9 +508,15 @@ src/
     ├── messages/           # inbox e mensagens
     │   ├── types.ts
     │   └── message.ts
-    ├── network/            # convites de conexão (antigo "newtwork")
+    ├── network/            # convites, follow, conexões, listagens de 3º perfil
+    │   ├── index.ts
     │   ├── types.ts
-    │   └── network.ts
+    │   ├── network.ts              # received/sent invitations, getMyConnections
+    │   ├── invitation-actions.ts   # sendConnectionRequest, cancelSentInvitation
+    │   ├── connection-actions.ts   # removeConnection
+    │   ├── follow-actions.ts       # followProfile, unfollowProfile
+    │   ├── profile-lists.ts        # getProfileConnections/Followers/Following
+    │   └── network-helpers.ts      # resolveMemberIds, resolveMemberId, pickVanity, extractFirstLegacyNumericId
     └── sse/                # eventos em tempo real
         ├── types.ts
         └── linkedin-sse.ts

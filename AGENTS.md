@@ -132,10 +132,15 @@ src/
     │   ├── index.ts
     │   ├── types.ts
     │   └── message.ts
-    ├── network/            # convites de rede (nome corrigido do "newtwork" histórico)
+    ├── network/            # convites, conexões, follow, lists de 3º perfil
     │   ├── index.ts
     │   ├── types.ts
-    │   └── network.ts
+    │   ├── network.ts              # received/sent invitations, getMyConnections
+    │   ├── invitation-actions.ts   # sendConnectionRequest, cancelSentInvitation
+    │   ├── connection-actions.ts   # removeConnection
+    │   ├── follow-actions.ts       # followProfile, unfollowProfile
+    │   ├── profile-lists.ts        # getProfileConnections/Followers/Following
+    │   └── profile-lists-shared.ts # shared vars + parser
     └── sse/                # streaming de eventos em tempo real
         ├── index.ts
         ├── types.ts
@@ -196,17 +201,95 @@ Mapa prático:
 - Posts do usuário: `src/modules/posts/` -> `voyagerFeedDashProfileUpdates...`
 - Inbox: `src/modules/messages/` -> `/voyagerMessagingGraphQL/graphql?queryId=messengerConversations...`
 - Mensagens: `src/modules/messages/` -> `/voyagerMessagingGraphQL/graphql?queryId=messengerMessages...`
-- Convites: `src/modules/network/` -> `/relationships/invitationViews`
+- Convites recebidos/enviados: `src/modules/network/network.ts` -> `/relationships/invitationViews`
+- Minhas conexões: `src/modules/network/network.ts` -> `/relationships/connections`
+- Enviar/cancelar convite / follow/unfollow / remover conexão -> **SDUI flagship-web RSC** (não mais Voyager)
+  - Base: `POST /flagship-web/rsc-action/actions/server-request?sduiid=<sduiid>&_v=0.2.6676`
+  - requestId **= sduiid** (NÃO UUID aleatório!)
+  - Estrutura do envelope (validado em captura real 2026):
+    ```
+    {
+      requestId: "<SDUI_ID>",
+      serverRequest: {
+        requestId: "<mesmo SDUI_ID>",
+        requestedArguments: {
+          $type: "proto.sdui.actions.requests.RequestedArguments",
+          requestedStateKeys: [],          // vazio na maioria
+          payload: <payload ESPECÍFICO>,
+          requestMetadata: { $type: "proto.sdui.common.RequestMetadata" }
+        },
+        onClientRequestFailureAction: { actions: [] },  // SEM failureType
+        isApfcEnabled: false,
+        isStreaming: false,
+        rumPageKey: ""
+      },
+      states: [],
+      requestedArguments: {                   // DUPLICADO na raiz
+        $type: "proto.sdui.actions.requests.RequestedArguments",
+        payload: <cópia idêntica>,
+        requestMetadata: {...},
+        states: [],
+        screenId: "com.linkedin.sdui.flagshipnav.profile.Profile" | "...mynetwork.Grow",
+        knownTemplateIds: []
+      }
+    }
+    ```
+  - Headers obrigatórios SDUI (injetados por postSduiAction):
+    - `Content-Type: application/json`
+    - `x-li-rsc-stream: true`
+    - `x-li-application-version: 0.2.6676`
+    - `x-li-page-instance-tracking-id: <16 bytes base64>`
+    - `x-li-application-instance: "undefined"` (ou UUID real)
+    - `x-li-anchor-page-key: d_flagship3_profile_view_base | d_flagship3_people`
+    - `x-li-page-instance: urn:li:page:<anchor>;<tracking_id>`
+    - `x-li-track: { clientVersion:"0.2.6676", mpName:"web", mpVersion:"0.2.6676", osName:"web", ... }`
+  - Helper: `src/core/sdui.ts` -> `postSduiAction({ sduiid, payload, anchorPageKey?, screenId?, refererUrl? })`
+  - sduiids: `addaAddConnection`, `addaWithdrawInvitation`, `addaUpdateFollowState`, `mynetwork.RemoveConnectionVanityName`
+  - **Payloads reais validados (GROUND TRUTH)**:
+    - **addaUpdateFollowState (seguir/parar de seguir)**:
+      ```
+      {
+        followStateType: "FollowStateType_FOLLOW_ACTIVE" | "FollowStateType_FOLLOW_INACTIVE",
+        memberUrn: { memberId: "<ID_NUMÉRICO_LEGADO>" },    // NÃO é o ACoA!
+        followStateBinding: {
+          key: "urn:li:fsd_followingState:urn:li:member:<numid>",
+          namespace: null
+        },
+        postActionSentConfigs: []
+      }
+      ```
+    - **addaAddConnection (enviar convite)**:
+      ```
+      {
+        inviteeUrn: { memberId: "<ID_NUMÉRICO_LEGADO>" },  // objeto, NÃO string URN!
+        nonIterableProfileId: "ACoA...",                     // fsdMemberId
+        renderMode: "IconAndText",
+        firstName: "Nome", lastName: "Sobrenome",            // opcionais
+        origin: "InvitationOrigin_PYMK_COHORT_SECTION",      // (ou PROFILE_VIEW)
+        clientContext: "MyNetworkPYMK",                      // (ou string do contexto)
+        isDisabled: { key: "connect-button-disabled-...", namespace: "MemoryNamespace" },
+        connectionState: { key: "state:invitation:urn:li:member:<numid>", namespace: "MemoryNamespace" },
+        profileCanonicalUrl: "https://...",
+        postActionSentConfigs: []
+      }
+      ```
+  - **IMPORTANTE**: `memberUrn.memberId` e `inviteeUrn.memberId` usam o **ID legado numérico**
+    (ex: `701527688`), **NÃO** o `fsd_member:ACoA...`. Esse ID vem de `resolveMemberIds().legacyNumericMemberId`
+    e é extraído via varredura recursiva por regex `urn:li:member:(\d+)` no JSON de perfil
+    (helper `extractFirstLegacyNumericId` em `network-helpers.ts`).
+- Conexões/seguidores de perfil 3º: `src/modules/network/profile-lists.ts` -> `voyagerSearchDashClusters` com filtro `NETWORK.connectionOf=urn:li:fsd_member:<id>`
 - Realtime: `src/modules/sse/` -> `https://www.linkedin.com/realtime/connect?rc=1`
 
 Para descobrir endpoints novos, procure por:
 
 - `fetchDataApi(`
+- `postSduiAction(`
 - `queryId=`
 - `/voyagerMessagingGraphQL/`
 - `/organization/companies`
 - `/relationships/`
 - `/realtime/`
+- `/flagship-web/rsc-action/`
 
 ## Como um agente deve desenvolver novas features aqui
 
